@@ -35,6 +35,7 @@ Unified glossary to avoid confusion and ensure everyone speaks the same language
 - **Rollback**: Reverting to a previous code version to undo a broken deployment.
 - **Feature Flag**: Software switch to enable/disable a feature without deploying new code.
 - **GitHub Actions**: Automation tool that runs workflows (tests, deploys, syncs) when events happen (push, PR, etc.).
+- **Smart Sync Verification**: Test entry added 2025-12-17 22:45 to verify incremental sync detection works correctly.
 
 ### Tools & Systems
 - **GitHub**: Code repository and PR review system.
