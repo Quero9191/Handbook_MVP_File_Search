@@ -1,0 +1,42 @@
+name: Sync KB to Store
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'kb/**'
+      - 'sync_kb_to_store.py'
+      - 'requirements.txt'
+      - '.github/workflows/sync-kb.yml'
+
+concurrency:
+  group: kb-sync-main
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run KB Sync to Store
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FILE_SEARCH_STORE_NAME: ${{ secrets.FILE_SEARCH_STORE_NAME }}
+          STORE_DISPLAY_NAME: ${{ secrets.STORE_DISPLAY_NAME }}
+          RESET_STORE: 'false'
+        run: python sync_kb_to_store.py
+
+      - name: Log sync completion
+        run: echo "✅ KB sync completed successfully"
