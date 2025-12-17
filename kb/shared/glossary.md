@@ -7,7 +7,7 @@ owner_team: "All Teams"
 maintainer: "Communications"
 visibility: "internal"
 keywords: ["glossary", "acronyms", "definitions", "terminology"]
-last_updated: "2025-12-17"
+last_updated: "2025-12-17 (GitHub Actions Test)"
 ---
 
 ## Purpose
@@ -34,6 +34,7 @@ Unified glossary to avoid confusion and ensure everyone speaks the same language
 - **Runbook**: Step-by-step guide to handle common operational tasks (incident response, deployments).
 - **Rollback**: Reverting to a previous code version to undo a broken deployment.
 - **Feature Flag**: Software switch to enable/disable a feature without deploying new code.
+- **GitHub Actions**: Automation tool that runs workflows (tests, deploys, syncs) when events happen (push, PR, etc.).
 
 ### Tools & Systems
 - **GitHub**: Code repository and PR review system.
