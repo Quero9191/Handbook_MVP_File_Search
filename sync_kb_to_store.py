@@ -191,13 +191,20 @@ def main():
     # 3) Listar docs existentes en el store
     logger.info("\n📋 Leyendo documentos del store...")
     existing_docs = list_documents(STORE_NAME)
+    logger.info(f"   Total docs en store: {len(existing_docs)}")
+    
     existing_map = {}  # {path -> (doc_name, hash)}
     for doc in existing_docs:
         path = get_metadata_value(doc, "path")
         sha = get_metadata_value(doc, "sha")
+        doc_name = doc.get("name", "unknown")
         if path:
-            existing_map[path] = (doc.get("name"), sha)
-    logger.info(f"   Found {len(existing_map)} existing documents")
+            existing_map[path] = (doc_name, sha)
+            logger.info(f"   ✓ {path} → hash: {sha[:8] if sha else 'NONE'}...")
+        else:
+            logger.warning(f"   ⚠️  Doc sin path metadata: {doc_name}")
+    
+    logger.info(f"   Mapeados: {len(existing_map)} documentos con path")
 
     # 4) Procesar archivos del KB
     logger.info("\n📄 Procesando archivos del KB...")
