@@ -36,7 +36,10 @@ ROOT = Path(__file__).resolve().parent
 ENV_PATH = ROOT / ".env"
 KB_DIR = ROOT / "kb"
 
-load_dotenv(ENV_PATH)
+# Primero cargar de GitHub Actions env (si existen), luego de .env
+# En GitHub Actions, las vars ya están en os.environ porque el workflow las pasa como env:
+if not os.getenv("GEMINI_API_KEY"):
+    load_dotenv(ENV_PATH)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 STORE_NAME = os.getenv("FILE_SEARCH_STORE_NAME", "").strip()
@@ -49,6 +52,13 @@ if not GEMINI_API_KEY:
     raise RuntimeError("❌ Falta GEMINI_API_KEY en .env")
 if not KB_DIR.exists():
     raise RuntimeError(f"❌ No existe la carpeta kb/: {KB_DIR}")
+
+# Debug: mostrar configuración (sin exponer la API key)
+logger.info(f"📌 Config:")
+logger.info(f"   RESET_STORE: {RESET_STORE}")
+logger.info(f"   STORE_NAME: {STORE_NAME[:50]}..." if STORE_NAME else "   STORE_NAME: (empty)")
+logger.info(f"   STORE_DISPLAY_NAME: {STORE_DISPLAY_NAME}")
+logger.info(f"   KB_DIR: {KB_DIR}")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
