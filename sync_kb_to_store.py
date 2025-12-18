@@ -359,9 +359,14 @@ def main():
             store_doc_id = None
             
             # Primero, intentar extraer del operation.response (la forma correcta)
-            if operation.response and hasattr(operation.response, 'name'):
-                store_doc_id = str(operation.response.name)
-                logger.info(f"      ✅ Document ID extraído de operation.response")
+            # operation.response es UploadToFileSearchStoreResponse que tiene document_name
+            if operation.response:
+                if hasattr(operation.response, 'document_name') and operation.response.document_name:
+                    store_doc_id = str(operation.response.document_name)
+                    logger.info(f"      ✅ Document ID extraído de operation.response.document_name")
+                elif hasattr(operation.response, 'name') and operation.response.name:
+                    store_doc_id = str(operation.response.name)
+                    logger.info(f"      ✅ Document ID extraído de operation.response.name")
             
             # Si no está en operation.response, buscar en el listado (con retry)
             if not store_doc_id or "documents/" not in store_doc_id:
