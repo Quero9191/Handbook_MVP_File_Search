@@ -8,7 +8,6 @@ python reset_kb.py
 import os
 import logging
 from pathlib import Path
-import requests
 from dotenv import load_dotenv
 from google import genai
 
@@ -25,7 +24,6 @@ load_dotenv(ENV_PATH)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 STORE_NAME = os.getenv("FILE_SEARCH_STORE_NAME", "").strip()
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 if not GEMINI_API_KEY:
     raise RuntimeError("❌ Falta GEMINI_API_KEY en .env")
@@ -45,17 +43,17 @@ def list_documents(store_name: str):
         return []
 
 def delete_document(doc_name: str):
-    """Borra un documento"""
-    params = {"key": GEMINI_API_KEY, "force": "true"}
-    url = f"{BASE_URL}/{doc_name}"
+    """Borra un documento usando el SDK con force=true"""
     try:
-        r = requests.delete(url, params=params, timeout=60)
-        r.raise_for_status()
+        client.file_search_stores.documents.delete(
+            name=doc_name,
+            config={"force": True}
+        )
         logger.info(f"   ✓ Borrado: {doc_name.split('/')[-1]}")
     except Exception as e:
-        logger.error(f"❌ Error deleting {doc_name}: {e}")
+        logger.error(f"❌ Error borrando {doc_name}: {e}")
 
-def main():
+def main(auto_confirm=False):
     logger.info("=" * 60)
     logger.info("🧹 RESET DEL KB - VACIAR COMPLETAMENTE")
     logger.info("=" * 60)
@@ -72,12 +70,13 @@ def main():
     logger.info(f"   Encontrados: {len(docs)} documentos")
     
     # Confirmación
-    logger.info("\n⚠️  ADVERTENCIA: Estás a punto de BORRAR TODOS los documentos.")
-    confirm = input("¿Continuar? Escribe 'SI' para confirmar: ").strip().upper()
-    
-    if confirm != "SI":
-        logger.info("❌ Operación cancelada.")
-        return
+    if not auto_confirm:
+        logger.info("\n⚠️  ADVERTENCIA: Estás a punto de BORRAR TODOS los documentos.")
+        confirm = input("¿Continuar? Escribe 'SI' para confirmar: ").strip().upper()
+        
+        if confirm != "SI":
+            logger.info("❌ Operación cancelada.")
+            return
     
     # Borrar todos
     logger.info("\n🗑️  Borrando documentos...")

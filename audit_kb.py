@@ -39,12 +39,12 @@ if not STORE_NAME:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-def get_metadata_value(doc: dict, key: str) -> str:
+def get_metadata_value(doc, key: str) -> str:
     """Extrae un valor de custom_metadata"""
     try:
-        for m in doc.get("custom_metadata", []):
-            if m.get("key") == key:
-                return m.get("string_value", "")
+        for m in doc.custom_metadata:
+            if m.key == key:
+                return m.string_value or ""
     except:
         pass
     return ""
@@ -109,7 +109,7 @@ def main():
         for path, docs_list in sorted(duplicates.items()):
             logger.warning(f"   {path}: {len(docs_list)} copias")
             for i, doc in enumerate(docs_list):
-                doc_name = doc.get("name", "unknown").split("/")[-1]
+                doc_name = doc.name.split("/")[-1]
                 logger.warning(f"      [{i+1}] {doc_name}")
     else:
         logger.info("\n✅ Sin duplicados por path")
@@ -118,8 +118,8 @@ def main():
     if no_path:
         logger.warning(f"\n⚠️  DOCUMENTOS SIN PATH: {len(no_path)}")
         for doc in no_path:
-            display_name = doc.get("display_name", "unknown")
-            doc_name = doc.get("name", "unknown").split("/")[-1]
+            display_name = doc.display_name or "unknown"
+            doc_name = doc.name.split("/")[-1]
             logger.warning(f"   {display_name} ({doc_name})")
     else:
         logger.info("\n✅ Todos los documentos tienen path")
