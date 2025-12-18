@@ -7,7 +7,7 @@ owner_team: "All Teams"
 maintainer: "Communications"
 visibility: "internal"
 keywords: ["handbook", "processes", "guides", "documentation"]
-last_updated: "2025-12-18 17:17 - PRUEBA FINAL"
+last_updated: "2025-12-18 17:30 - FINAL TEST SIN AUTOCOMMIT"
 ---
 
 ## Purpose
