@@ -66,9 +66,13 @@ Si preguntás "¿Qué significa prueba de sincronización?", el bot debería enc
 **Actualización 2025-12-18 23:00:**
 Se corrigió el sistema para que sync_state.json se persista en Git. Ahora:
 - Primera ejecución en GitHub: crea y llena sync_state.json
-- Commitea el resultado de vuelta al repo
+- Commitea el resultado de vuelta al repo (con autenticación GITHUB_TOKEN)
 - Segunda ejecución: detecta cambios correctamente
 - ¡¡¡SIN DUPLICADOS GARANTIZADO!!!
+
+**Actualización 2025-12-18 23:03:**
+Se corrigió el problema de autenticación en el workflow.
+El bot ya debería poder consultar esta sección.
 
 ---
 - **Process**: Step-by-step workflow for regular operations (releases, campaigns).
