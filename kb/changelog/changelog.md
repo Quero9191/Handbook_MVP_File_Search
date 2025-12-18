@@ -15,6 +15,9 @@ Track all changes to the knowledge base so teams know what's new and what change
 
 ## Changelog
 
+### 2025-12-18 (Delete Test)
+- 🧪 **Test**: Verifying that document deletions work correctly during sync
+
 ### 2025-12-17 (MVP Launch)
 - ✨ **New**: Launched initial knowledge base with 6 MVP documents
 - ✨ **New**: Incident management playbook and triage checklist
