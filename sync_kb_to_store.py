@@ -55,7 +55,8 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
 ENV_PATH = ROOT / ".env"
 KB_DIR = ROOT / "kb"
-STATE_FILE = ROOT / "sync_state.json"  # ← Libro mayor local: path -> {hash, store_doc_id}
+STATE_FILE = ROOT / "sync_state.json"  # ← Archivo persistente en Git
+STATE_BASE_FILE = ROOT / "sync_state_base.json"  # ← Template base (vacío)
 
 # Cargar env variables
 if not os.getenv("GEMINI_API_KEY"):
@@ -143,10 +144,20 @@ def load_sync_state() -> Dict[str, dict]:
     Carga el estado anterior: {kb_path -> {"hash": str, "store_doc_id": str}}
     
     Compatible con versión antigua que solo tenía hashes (strings).
+    
+    En GitHub Actions (primera ejecución):
+    - Si sync_state.json está vacío o no existe
+    - Usa sync_state_base.json como base (también vacío)
     """
     if STATE_FILE.exists():
         try:
             data = json.loads(STATE_FILE.read_text())
+            
+            # Si el archivo está vacío o es un dict vacío
+            if not data:
+                logger.info(f"📝 Primer run detectado - usando template base")
+                if STATE_BASE_FILE.exists():
+                    data = json.loads(STATE_BASE_FILE.read_text())
             
             # Convertir formato antiguo (solo strings) al nuevo (dicts)
             new_format = {}
@@ -166,7 +177,7 @@ def load_sync_state() -> Dict[str, dict]:
         except Exception as e:
             logger.warning(f"⚠️ Error loading sync_state.json: {e}")
             return {}
-    logger.info(f"📝 Primer run: sin estado anterior")
+    logger.info(f"📝 Primer run: sin estado anterior (archivo no existe)")
     return {}
 
 
