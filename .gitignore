@@ -8,3 +8,7 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
+
+# NOTE: sync_state.json IS tracked in Git intentionally
+# It stores the mapping between KB files and Store document IDs
+# This is essential for avoiding duplicates in GitHub Actions
