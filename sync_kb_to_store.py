@@ -392,6 +392,35 @@ def main():
     logger.info(f"\n👉 Úsalo en la configuración del bot:")
     logger.info(f"   FILE_SEARCH_STORE_NAMES={STORE_NAME}")
 
+    # ─────────────────────────────────────────────────────────────
+    # 8. Guardar cambios en Git (si estamos en CI/CD)
+    # ─────────────────────────────────────────────────────────────
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+        logger.info(f"\n💾 PASO 8: Guardando sync_state.json en Git...")
+        try:
+            import subprocess
+            subprocess.run(["git", "config", "user.email", "sync@github.local"], check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "KB Sync Bot"], check=True, capture_output=True)
+            subprocess.run(["git", "add", str(STATE_FILE)], check=True, capture_output=True)
+            
+            # Solo commit si hay cambios
+            result = subprocess.run(["git", "diff", "--cached", "--exit-code"], capture_output=True)
+            if result.returncode != 0:  # Hay cambios
+                subprocess.run(
+                    ["git", "commit", "-m", "chore: update sync_state.json after KB sync"],
+                    check=True,
+                    capture_output=True
+                )
+                subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
+                logger.info(f"   ✅ sync_state.json commiteado y pusheado")
+            else:
+                logger.info(f"   ✅ No hay cambios en sync_state.json")
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"   ⚠️ No se pudo hacer commit/push (puede estar en ambiente local): {e}")
+            # No es error fatal si esto falla en ambiente local
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error al hacer git commit: {e}")
+
 
 if __name__ == "__main__":
     try:
