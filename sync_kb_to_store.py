@@ -370,21 +370,32 @@ def main():
                 logger.warning(f"      ⚠️ Operación no completó en {max_wait}s (continuando)")
             
             # Después de que se complete, buscar el documento que se creó
-            # Buscar por path en metadata
-            docs = client.file_search_stores.documents.list(parent=STORE_NAME)
+            # Puede haber delay de propagación, reintentar
             store_doc_id = None
-            for doc in docs:
-                for meta_item in doc.custom_metadata:
-                    if meta_item.key == "path" and meta_item.string_value == kb_path:
-                        store_doc_id = doc.name
-                        break
-                if store_doc_id:
+            for attempt in range(5):  # Reintentar hasta 5 veces
+                docs = client.file_search_stores.documents.list(parent=STORE_NAME)
+                for doc in docs:
+                    for meta_item in doc.custom_metadata:
+                        if meta_item.key == "path" and meta_item.string_value == kb_path:
+                            # Encontramos un documento con este path
+                            # Si hay multiple (viejo y nuevo), tomar el más reciente (últimamente creado)
+                            if store_doc_id is None or doc.create_time > docs_by_path[-1].create_time:
+                                store_doc_id = doc.name
+                            break
+                
+                if store_doc_id and "documents/" in store_doc_id:
+                    # Encontramos el document_id real
                     break
+                elif attempt < 4:
+                    logger.info(f"      ⏳ Esperando replicación del documento ({attempt+1}/5)...")
+                    time.sleep(3)
             
             if not store_doc_id:
                 # Fallback: usar el operation name si no encontramos el doc
                 store_doc_id = operation.name
-                logger.warning(f"      ⚠️ No se encontró document_id, usando operation_id")
+                logger.warning(f"      ⚠️ No se encontró document_id después de reintentos, usando operation_id")
+            elif "upload/operations" in store_doc_id:
+                logger.warning(f"      ⚠️ Solo encontré operation_id, no document_id final")
             
             logger.info(f"      ✅ Subido exitosamente")
             logger.info(f"         Store ID: {store_doc_id[:60]}...")
