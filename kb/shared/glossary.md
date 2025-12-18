@@ -75,6 +75,10 @@ Se corrigió el problema de autenticación en el workflow usando `git-auto-commi
 El bot ya debería poder consultar esta sección.
 
 **Status:** ✅ Sistema completamente funcional
+
+---
+
+**NOTA FINAL:** El bot debería poder acceder a toda esta información en tiempo real.
 - **Process**: Step-by-step workflow for regular operations (releases, campaigns).
 - **Overview**: High-level summary of a topic or department.
 - **Policy**: Rules and compliance requirements.
