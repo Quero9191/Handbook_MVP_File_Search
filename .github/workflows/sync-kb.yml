@@ -39,6 +39,8 @@ jobs:
 
       - name: Commit sync state back to repo
         if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -47,7 +49,7 @@ jobs:
             echo "📝 No changes to sync_state.json"
           else
             git commit -m "chore: update sync_state.json after KB sync"
-            git push origin main
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:main
           fi
 
       - name: Log sync completion
