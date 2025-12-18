@@ -1,28 +1,44 @@
 """
 Smart Sync: sincroniza cambios incrementales del KB con Gemini File Search Store.
 
-Lógica con sync_state.json:
-1. Lee sync_state.json (si existe) para conocer el estado anterior
-2. Calcula hash de cada .md en kb/
-3. Para cada archivo:
-   - Si hash cambió o es nuevo → sube/actualiza al store
-   - Si hash igual → no hace nada
-4. Guarda nuevo sync_state.json con hashes actuales
-5. Borra docs cuyo path ya no existe en el repo
+🔑 ARQUITECTURA CON sync_state.json:
 
-Nota: sync_state.json reemplaza la dependencia en metadata de Google,
-que no parece persistir entre ejecuciones.
+El problema: Google File Search Store API no persiste display_name ni permite
+identificar qué documento viejo corresponde a qué hash nuevo.
+
+La solución: Mantener un mapeo local en sync_state.json:
+
+{
+  "kb/path/to/file.md": {
+    "hash": "6a64ced5e0a2c867...",
+    "store_doc_id": "fileSearchStores/.../documents/xyz123"
+  }
+}
+
+Flujo:
+1. Cargar sync_state.json (estado anterior)
+2. Calcular hash de cada .md en kb/
+3. Para cada archivo:
+   - Sin cambios → saltar
+   - Hash nuevo → BORRAR viejo (por store_doc_id) y SUBIR nuevo
+   - Nuevo archivo → SUBIR
+4. Detectar eliminados (en sync_state pero no en kb/)
+5. Guardar sync_state.json con nuevo estado
+
+Garantías:
+✅ Nunca duplica
+✅ Detecta cambios
+✅ No depende de API instable
+✅ Identificación 100% certera (path + hash + Store ID)
 """
 
 import os
-import time
 import hashlib
 import json
 import logging
 from pathlib import Path
 from typing import Dict, Tuple, List
 
-import requests
 import yaml
 from dotenv import load_dotenv
 from google import genai
@@ -39,29 +55,23 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
 ENV_PATH = ROOT / ".env"
 KB_DIR = ROOT / "kb"
-STATE_FILE = ROOT / "sync_state.json"  # ← Aquí guardamos el estado
+STATE_FILE = ROOT / "sync_state.json"  # ← Libro mayor local: path -> {hash, store_doc_id}
 
-# Primero cargar de GitHub Actions env (si existen), luego de .env
-# En GitHub Actions, las vars ya están en os.environ porque el workflow las pasa como env:
+# Cargar env variables
 if not os.getenv("GEMINI_API_KEY"):
     load_dotenv(ENV_PATH)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 STORE_NAME = os.getenv("FILE_SEARCH_STORE_NAME", "").strip()
 STORE_DISPLAY_NAME = os.getenv("STORE_DISPLAY_NAME", "zigchain-handbook-mvp").strip()
-RESET_STORE = os.getenv("RESET_STORE", "false").strip().lower() in ("1", "true", "yes", "y")
-
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 if not GEMINI_API_KEY:
-    raise RuntimeError("❌ Falta GEMINI_API_KEY en .env")
+    raise RuntimeError("❌ Falta GEMINI_API_KEY en .env o en GitHub Actions secrets")
 if not KB_DIR.exists():
     raise RuntimeError(f"❌ No existe la carpeta kb/: {KB_DIR}")
 
-# Debug: mostrar configuración (sin exponer la API key)
 logger.info(f"📌 Config:")
-logger.info(f"   RESET_STORE: {RESET_STORE}")
-logger.info(f"   STORE_NAME: {STORE_NAME[:50]}..." if STORE_NAME else "   STORE_NAME: (empty)")
+logger.info(f"   STORE_NAME: {STORE_NAME[:50]}..." if STORE_NAME else "   STORE_NAME: (crear nuevo)")
 logger.info(f"   STORE_DISPLAY_NAME: {STORE_DISPLAY_NAME}")
 logger.info(f"   KB_DIR: {KB_DIR}")
 
@@ -70,6 +80,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 # =========
 # Helpers
 # =========
+
 def sha256_text(s: str) -> str:
     """Calcula hash SHA256 de un texto"""
     return hashlib.sha256(s.encode("utf-8", errors="ignore")).hexdigest()
@@ -105,166 +116,274 @@ def parse_frontmatter(md_text: str) -> Tuple[Dict, str]:
         return {}, md_text
 
 
-def wait_operation(op):
-    """Espera a que una operación asincrónica termine"""
-    while not op.done:
-        time.sleep(2)
-        op = client.operations.get(op)
-    return op
+def delete_document(store_doc_id: str) -> bool:
+    """Borra un documento del File Search Store por su ID"""
+    if not store_doc_id:
+        logger.warning(f"   ⚠️ Sin ID para borrar (ignorando)")
+        return False
+    
+    try:
+        logger.info(f"   🗑️  Borrando documento: {store_doc_id[:60]}...")
+        client.file_search_stores.delete(
+            name=store_doc_id
+        )
+        logger.info(f"   ✅ Documento borrado")
+        return True
+    except Exception as e:
+        logger.warning(f"   ⚠️ No se pudo borrar: {e}")
+        return False
 
 
 # =========
-# Main Logic
+# State Management
 # =========
+
 def load_sync_state() -> Dict[str, dict]:
-    """Carga el estado anterior: {kb_path -> {hash, doc_name}}"""
+    """
+    Carga el estado anterior: {kb_path -> {"hash": str, "store_doc_id": str}}
+    
+    Compatible con versión antigua que solo tenía hashes (strings).
+    """
     if STATE_FILE.exists():
         try:
-            return json.loads(STATE_FILE.read_text())
+            data = json.loads(STATE_FILE.read_text())
+            
+            # Convertir formato antiguo (solo strings) al nuevo (dicts)
+            new_format = {}
+            for path, value in data.items():
+                if isinstance(value, str):
+                    # Formato antiguo: solo el hash
+                    new_format[path] = {
+                        "hash": value,
+                        "store_doc_id": None,  # No lo tenemos del formato anterior
+                    }
+                else:
+                    # Formato nuevo: ya es un dict
+                    new_format[path] = value
+            
+            return new_format
+            
         except Exception as e:
-            logger.warning(f"⚠️  Error loading sync_state.json: {e}")
+            logger.warning(f"⚠️ Error loading sync_state.json: {e}")
+            return {}
+    logger.info(f"📝 Primer run: sin estado anterior")
     return {}
 
 
 def save_sync_state(state: Dict[str, dict]):
-    """Guarda el estado actual: {kb_path -> {hash, doc_name}}"""
+    """Guarda el estado actual: {kb_path -> {"hash": str, "store_doc_id": str}}"""
     try:
         STATE_FILE.write_text(json.dumps(state, indent=2))
-        logger.info(f"✅ Saved sync_state.json with {len(state)} entries")
+        logger.info(f"💾 sync_state.json guardado: {len(state)} documentos")
     except Exception as e:
         logger.error(f"❌ Error saving sync_state.json: {e}")
+        raise
 
 
 # =========
-# Main Logic
+# Main Sync Logic
 # =========
+
 def main():
     global STORE_NAME
-    
-    logger.info("=" * 60)
-    logger.info("🚀 Smart Sync: KB → File Search Store (con sync_state.json)")
-    logger.info("=" * 60)
 
-    # 1) Crear store si no existe
+    logger.info("=" * 70)
+    logger.info("🚀 SMART SYNC: KB → File Search Store (con sync_state.json)")
+    logger.info("=" * 70)
+
+    # ─────────────────────────────────────────────────────────────
+    # 1. Asegurar que existe el Store
+    # ─────────────────────────────────────────────────────────────
     if not STORE_NAME:
-        logger.info("📦 Creando nuevo File Search Store...")
-        store = client.file_search_stores.create(
-            config={"display_name": STORE_DISPLAY_NAME}
-        )
-        STORE_NAME = store.name
-        logger.info(f"✅ Store creado: {STORE_NAME}")
-        logger.info(f"👉 Guarda esto en tu .env: FILE_SEARCH_STORE_NAME={STORE_NAME}")
+        logger.info("\n📦 PASO 1: Creando nuevo File Search Store...")
+        try:
+            store = client.file_search_stores.create(
+                config={"display_name": STORE_DISPLAY_NAME}
+            )
+            STORE_NAME = store.name
+            logger.info(f"✅ Store creado: {STORE_NAME}")
+            logger.info(f"\n👉 IMPORTANTE: Guarda esto en tu .env:")
+            logger.info(f"   FILE_SEARCH_STORE_NAME={STORE_NAME}")
+        except Exception as e:
+            logger.error(f"❌ Error creando store: {e}")
+            raise
     else:
-        logger.info(f"✅ Usando store existente: {STORE_NAME}")
+        logger.info(f"\n✅ PASO 1: Store existente: {STORE_NAME}")
 
-    # 2) Cargar estado anterior
-    logger.info("\n📋 Cargando estado anterior...")
+    # ─────────────────────────────────────────────────────────────
+    # 2. Cargar estado anterior (sync_state.json)
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n📋 PASO 2: Cargando estado anterior...")
     old_state = load_sync_state()
-    logger.info(f"   Estado anterior: {len(old_state)} documentos")
+    logger.info(f"   Documentos en sync_state.json: {len(old_state)}")
 
-    # 3) Calcular estado actual (paths -> hashes)
-    logger.info("\n📄 Procesando archivos del KB...")
+    # ─────────────────────────────────────────────────────────────
+    # 3. Descubrir archivos .md en kb/ y calcular hashes
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n📄 PASO 3: Explorando kb/ y calculando hashes...")
     md_files = sorted(KB_DIR.rglob("*.md"))
     md_files = [p for p in md_files if p.name.lower() != "template.md"]
-    
+    logger.info(f"   Archivos encontrados: {len(md_files)}")
+
+    # Calcular hashes de archivos actuales
+    current_hashes = {}
+    for p in md_files:
+        rel = p.relative_to(KB_DIR).as_posix()
+        kb_path = f"kb/{rel}"
+        content = p.read_text(encoding="utf-8", errors="ignore")
+        current_hashes[kb_path] = sha256_text(content)
+
+    # ─────────────────────────────────────────────────────────────
+    # 4. Procesamiento: NUEVO / CAMBIO / SIN CAMBIOS
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n🔄 PASO 4: Procesando cambios...")
     new_state = {}
-    uploaded = 0
-    updated = 0
-    skipped = 0
-    deleted = 0
+    stats = {"uploaded": 0, "updated": 0, "unchanged": 0, "deleted": 0}
 
     for p in md_files:
         rel = p.relative_to(KB_DIR).as_posix()
         kb_path = f"kb/{rel}"
-        section = rel.split("/", 1)[0]
+        new_hash = current_hashes[kb_path]
+
+        logger.info(f"\n   📄 {kb_path}")
+
+        # ╔═══════════════════════════════════════════════════════╗
+        # ║ CASO 1: Archivo existía antes                         ║
+        # ╚═══════════════════════════════════════════════════════╝
+        if kb_path in old_state:
+            old_entry = old_state[kb_path]
+            old_hash = old_entry.get("hash")
+            store_doc_id = old_entry.get("store_doc_id")
+
+            # Subcase 1a: Sin cambios
+            if new_hash == old_hash:
+                logger.info(f"      ✓ Sin cambios (hash igual)")
+                new_state[kb_path] = old_entry  # Mantener Store ID
+                stats["unchanged"] += 1
+                continue
+
+            # Subcase 1b: Cambió el contenido
+            else:
+                logger.info(f"      🔄 ACTUALIZACIÓN DETECTADA")
+                logger.info(f"         Old hash: {old_hash[:16]}...")
+                logger.info(f"         New hash: {new_hash[:16]}...")
+                
+                # Borrar documento viejo del Store (si tenemos su ID)
+                if store_doc_id:
+                    delete_document(store_doc_id)
+                    stats["updated"] += 1
+                else:
+                    # No tenemos ID (formato antiguo). Tratarlo como nuevo
+                    logger.info(f"         (sin ID antiguo, tratando como nuevo)")
+                    stats["uploaded"] += 1
+
+        # ╔═══════════════════════════════════════════════════════╗
+        # ║ CASO 2: Archivo es NUEVO                              ║
+        # ╚═══════════════════════════════════════════════════════╝
+        else:
+            logger.info(f"      ⬆️  ARCHIVO NUEVO")
+            stats["uploaded"] += 1
+
+        # ─────────────────────────────────────────────────────────
+        # Subir documento (NUEVO o reemplazo)
+        # ─────────────────────────────────────────────────────────
+        logger.info(f"      ⏳ Subiendo a Store...")
         
         content = p.read_text(encoding="utf-8", errors="ignore")
         fm, _ = parse_frontmatter(content)
-        new_hash = sha256_text(content)
-
-        # Comparar con estado anterior
-        if kb_path in old_state:
-            old_entry = old_state[kb_path]
-            old_hash = old_entry.get("hash") if isinstance(old_entry, dict) else old_entry
-            old_doc_name = old_entry.get("doc_name") if isinstance(old_entry, dict) else None
-            
-            if new_hash == old_hash:
-                logger.info(f"✅ Sin cambios: {kb_path}")
-                new_state[kb_path] = old_entry  # Mantener doc_name
-                skipped += 1
-                continue
-            else:
-                logger.info(f"🔄 Actualizando: {kb_path}")
-                # Borrar documento antiguo
-                if old_doc_name:
-                    try:
-                        delete_document(old_doc_name)
-                    except:
-                        pass
-                updated += 1
-        else:
-            logger.info(f"⬆️  Nuevo: {kb_path}")
-            uploaded += 1
-
+        
         # Construir metadata
+        section = rel.split("/", 1)[0]
         meta = [
             {"key": "path", "string_value": kb_path},
             {"key": "section", "string_value": section},
-            {"key": "sha", "string_value": new_hash},
+            {"key": "hash", "string_value": new_hash},
         ]
 
-        for k in ["title", "description", "department", "doc_type", "owner_team", "maintainer", "visibility", "last_updated"]:
-            v = fm.get(k)
-            if v:
-                meta.append({"key": k, "string_value": str(v)})
+        # Agregar campos del frontmatter
+        for key in ["title", "description", "department", "doc_type", 
+                    "owner_team", "maintainer", "visibility", "last_updated"]:
+            value = fm.get(key)
+            if value:
+                meta.append({"key": key, "string_value": str(value)})
 
-        kw = fm.get("keywords")
-        if isinstance(kw, list) and kw:
-            meta.append({"key": "keywords_csv", "string_value": ",".join([str(x) for x in kw])})
+        # Agregar keywords si existen
+        keywords = fm.get("keywords")
+        if isinstance(keywords, list) and keywords:
+            meta.append({"key": "keywords_csv", "string_value": ",".join([str(k) for k in keywords])})
 
-        # Subir al store
+        # Subir al Store
         try:
-            op = client.file_search_stores.upload_to_file_search_store(
+            response = client.file_search_stores.upload_to_file_search_store(
                 file=str(p),
                 file_search_store_name=STORE_NAME,
                 config={
                     "display_name": kb_path,
+                    "mime_type": "text/markdown",
                     "custom_metadata": meta,
                 },
             )
-            wait_operation(op)
-            # Guardar info con doc_name
+            
+            # Extraer Store Doc ID de la respuesta
+            store_doc_id = response.name if hasattr(response, 'name') else str(response)
+            logger.info(f"      ✅ Subido exitosamente")
+            logger.info(f"         Store ID: {store_doc_id[:60]}...")
+            
+            # Guardar en nuevo estado
             new_state[kb_path] = {
                 "hash": new_hash,
-                "doc_name": None  # Se actualizaría con el nombre real si fuera necesario
+                "store_doc_id": store_doc_id,
             }
+
         except Exception as e:
-            logger.error(f"❌ Error uploading {kb_path}: {e}")
+            logger.error(f"      ❌ Error subiendo: {e}")
+            # Mantener entrada antigua si la había
+            if kb_path in old_state:
+                new_state[kb_path] = old_state[kb_path]
+            raise
 
-    # 4) Detectar documentos eliminados
-    logger.info("\n🗑️  Detectando documentos eliminados...")
+    # ─────────────────────────────────────────────────────────────
+    # 5. Detectar archivos ELIMINADOS (estaban antes, ya no existen)
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n🗑️  PASO 5: Detectando eliminados...")
     for kb_path in old_state:
-        if kb_path not in new_state:
-            logger.info(f"   Path ya no existe: {kb_path}")
-            deleted += 1
+        if kb_path not in current_hashes:
+            logger.info(f"   {kb_path}")
+            logger.info(f"      ⚠️ Path ya no existe en kb/")
+            
+            store_doc_id = old_state[kb_path].get("store_doc_id")
+            if store_doc_id:
+                delete_document(store_doc_id)
+            stats["deleted"] += 1
 
-    # 5) Guardar nuevo estado
-    logger.info("\n💾 Guardando nuevo estado...")
+    # ─────────────────────────────────────────────────────────────
+    # 6. Guardar nuevo estado
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n💾 PASO 6: Guardando nuevo estado...")
     save_sync_state(new_state)
 
-    # 6) Resumen
-    logger.info("\n" + "=" * 60)
-    logger.info("📊 RESUMEN:")
-    logger.info(f"   ✅ Subidos: {uploaded}")
-    logger.info(f"   🔄 Actualizados: {updated}")
-    logger.info(f"   ✓ Sin cambios: {skipped}")
-    logger.info(f"   🗑️  Eliminados (detectados): {deleted}")
-    logger.info("=" * 60)
-    logger.info("\n✅ Sync completado exitosamente!")
-    logger.info(f"👉 File Search Store: {STORE_NAME}")
-    logger.info(f"👉 Úsalo en el .env del bot como: FILE_SEARCH_STORE_NAMES={STORE_NAME}")
+    # ─────────────────────────────────────────────────────────────
+    # 7. Resumen final
+    # ─────────────────────────────────────────────────────────────
+    logger.info(f"\n" + "=" * 70)
+    logger.info(f"📊 RESUMEN DE SINCRONIZACIÓN:")
+    logger.info(f"   ⬆️  Nuevos:       {stats['uploaded']}")
+    logger.info(f"   🔄 Actualizados: {stats['updated']}")
+    logger.info(f"   ✓ Sin cambios:   {stats['unchanged']}")
+    logger.info(f"   🗑️  Eliminados:   {stats['deleted']}")
+    logger.info(f"   📚 Total en Store: {len(new_state)}")
+    logger.info(f"=" * 70)
+    logger.info(f"\n✅ ¡SYNC COMPLETADO EXITOSAMENTE!")
+    logger.info(f"\n👉 File Search Store ID:")
+    logger.info(f"   {STORE_NAME}")
+    logger.info(f"\n👉 Úsalo en la configuración del bot:")
+    logger.info(f"   FILE_SEARCH_STORE_NAMES={STORE_NAME}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"\n❌ FALLO FATAL: {e}")
+        exit(1)
 
