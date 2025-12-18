@@ -285,12 +285,11 @@ def main():
                 if store_doc_id:
                     logger.info(f"      🗑️  Borrando documento obsoleto...")
                     delete_document(store_doc_id)
-                    stats["deleted"] += 1  # ← Contar como eliminado (viejo)
                 else:
                     # No tenemos ID (formato antiguo). Tratarlo como nuevo
                     logger.info(f"         (sin ID antiguo, tratando como nuevo)")
                 
-                stats["uploaded"] += 1  # ← Contar subida del nuevo
+                stats["updated"] += 1
 
         # ╔═══════════════════════════════════════════════════════╗
         # ║ CASO 2: Archivo es NUEVO                              ║
