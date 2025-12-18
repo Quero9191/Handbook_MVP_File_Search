@@ -7,7 +7,7 @@ owner_team: "All Teams"
 maintainer: "Communications"
 visibility: "internal"
 keywords: ["glossary", "acronyms", "definitions", "terminology"]
-last_updated: "2025-12-18 17:34 - TESTING INCREMENTAL SYNC"
+last_updated: "2025-12-18 21:35 - E2E Test: Full Sync Verification"
 ---
 
 ## Purpose
