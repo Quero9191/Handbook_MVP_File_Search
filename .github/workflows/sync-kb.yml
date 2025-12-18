@@ -24,6 +24,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug sync state
+        run: |
+          echo "📋 Contenido de sync_state.json:"
+          cat sync_state.json | head -50
+          echo ""
+          echo "📊 Conteo de documentos en sync_state.json:"
+          cat sync_state.json | grep -c "store_doc_id" || echo "0"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
