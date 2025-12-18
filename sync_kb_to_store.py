@@ -118,7 +118,7 @@ def parse_frontmatter(md_text: str) -> Tuple[Dict, str]:
 
 
 def delete_document(store_doc_id: str) -> bool:
-    """Borra un documento del File Search Store por su ID"""
+    """Borra un documento del File Search Store por su ID (con force=true si es necesario)"""
     if not store_doc_id:
         logger.warning(f"   ⚠️ Sin ID para borrar (ignorando)")
         return False
@@ -131,8 +131,27 @@ def delete_document(store_doc_id: str) -> bool:
         logger.info(f"   ✅ Documento borrado")
         return True
     except Exception as e:
-        logger.warning(f"   ⚠️ No se pudo borrar: {e}")
-        return False
+        # Si falla por "non-empty", intentar con force=true
+        if "non-empty" in str(e).lower() or "FAILED_PRECONDITION" in str(e):
+            logger.info(f"   ⚠️ Documento tiene chunks, borrando con force=true...")
+            try:
+                import requests
+                api_key = os.getenv("GEMINI_API_KEY")
+                url = f"https://generativelanguage.googleapis.com/v1beta/{store_doc_id}"
+                params = {"key": api_key, "force": "true"}
+                resp = requests.delete(url, params=params, timeout=30)
+                if resp.status_code == 200:
+                    logger.info(f"   ✅ Documento borrado (force=true)")
+                    return True
+                else:
+                    logger.warning(f"   ⚠️ Error con force=true: {resp.status_code}")
+                    return False
+            except Exception as force_err:
+                logger.warning(f"   ⚠️ No se pudo borrar ni con force: {force_err}")
+                return False
+        else:
+            logger.warning(f"   ⚠️ No se pudo borrar: {e}")
+            return False
 
 
 # =========
@@ -337,8 +356,36 @@ def main():
                 },
             )
             
-            # Extraer Store Doc ID de la respuesta
-            store_doc_id = response.name if hasattr(response, 'name') else str(response)
+            # response es una Operation, esperar a que complete
+            import time
+            operation = response
+            max_wait = 60  # segundos
+            waited = 0
+            while not operation.done and waited < max_wait:
+                time.sleep(2)
+                operation = client.operations.get(operation.name)
+                waited += 2
+            
+            if not operation.done:
+                logger.warning(f"      ⚠️ Operación no completó en {max_wait}s (continuando)")
+            
+            # Después de que se complete, buscar el documento que se creó
+            # Buscar por path en metadata
+            docs = client.file_search_stores.documents.list(parent=STORE_NAME)
+            store_doc_id = None
+            for doc in docs:
+                for meta_item in doc.custom_metadata:
+                    if meta_item.key == "path" and meta_item.string_value == kb_path:
+                        store_doc_id = doc.name
+                        break
+                if store_doc_id:
+                    break
+            
+            if not store_doc_id:
+                # Fallback: usar el operation name si no encontramos el doc
+                store_doc_id = operation.name
+                logger.warning(f"      ⚠️ No se encontró document_id, usando operation_id")
+            
             logger.info(f"      ✅ Subido exitosamente")
             logger.info(f"         Store ID: {store_doc_id[:60]}...")
             
