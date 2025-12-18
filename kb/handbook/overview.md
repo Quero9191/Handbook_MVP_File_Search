@@ -32,3 +32,7 @@ Central hub for all team handbooks, processes, and how-we-work documentation.
 ## Related
 - [Glossary](../shared/glossary.md) – Terminology and definitions
 - [Tools & Links](../shared/tools-and-links.md) – Tech stack and resources
+
+---
+
+**Última actualización:** 2025-12-18 17:12 - Prueba de sync incremental
