@@ -35,4 +35,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FILE_SEARCH_STORE_NAME: ${{ secrets.FILE_SEARCH_STORE_NAME }}
           STORE_DISPLAY_NAME: ${{ secrets.STORE_DISPLAY_NAME }}
+        run: python sync_kb_to_store.py
 
+      - name: Log sync completion
+        run: echo "✅ KB sync completed successfully"
