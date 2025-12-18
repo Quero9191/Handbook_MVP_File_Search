@@ -96,3 +96,4 @@ El bot ya debería poder consultar esta sección.
 
 
 ## Actualización: 18 de Diciembre 2025
+✅ INCREMENTAL TEST - Delete old, upload new
