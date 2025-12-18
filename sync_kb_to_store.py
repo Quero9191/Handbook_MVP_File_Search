@@ -118,40 +118,23 @@ def parse_frontmatter(md_text: str) -> Tuple[Dict, str]:
 
 
 def delete_document(store_doc_id: str) -> bool:
-    """Borra un documento del File Search Store por su ID (con force=true si es necesario)"""
+    """Borra un documento del File Search Store por su ID (con force=true para chunks)"""
     if not store_doc_id:
         logger.warning(f"   ⚠️ Sin ID para borrar (ignorando)")
         return False
     
     try:
         logger.info(f"   🗑️  Borrando documento: {store_doc_id[:60]}...")
-        client.file_search_stores.delete(
-            name=store_doc_id
+        # Usar force=true para borrar también los chunks
+        client.file_search_stores.documents.delete(
+            name=store_doc_id,
+            config={"force": True}
         )
         logger.info(f"   ✅ Documento borrado")
         return True
     except Exception as e:
-        # Si falla por "non-empty", intentar con force=true
-        if "non-empty" in str(e).lower() or "FAILED_PRECONDITION" in str(e):
-            logger.info(f"   ⚠️ Documento tiene chunks, borrando con force=true...")
-            try:
-                import requests
-                api_key = os.getenv("GEMINI_API_KEY")
-                url = f"https://generativelanguage.googleapis.com/v1beta/{store_doc_id}"
-                params = {"key": api_key, "force": "true"}
-                resp = requests.delete(url, params=params, timeout=30)
-                if resp.status_code == 200:
-                    logger.info(f"   ✅ Documento borrado (force=true)")
-                    return True
-                else:
-                    logger.warning(f"   ⚠️ Error con force=true: {resp.status_code}")
-                    return False
-            except Exception as force_err:
-                logger.warning(f"   ⚠️ No se pudo borrar ni con force: {force_err}")
-                return False
-        else:
-            logger.warning(f"   ⚠️ No se pudo borrar: {e}")
-            return False
+        logger.warning(f"   ⚠️ No se pudo borrar: {e}")
+        return False
 
 
 # =========
@@ -363,7 +346,10 @@ def main():
             waited = 0
             while not operation.done and waited < max_wait:
                 time.sleep(2)
-                operation = client.operations.get(operation.name)
+                try:
+                    operation = client.operations.get(str(operation.name))
+                except:
+                    pass
                 waited += 2
             
             if not operation.done:
@@ -373,29 +359,34 @@ def main():
             # Puede haber delay de propagación, reintentar
             store_doc_id = None
             for attempt in range(5):  # Reintentar hasta 5 veces
-                docs = client.file_search_stores.documents.list(parent=STORE_NAME)
-                for doc in docs:
-                    for meta_item in doc.custom_metadata:
-                        if meta_item.key == "path" and meta_item.string_value == kb_path:
-                            # Encontramos un documento con este path
-                            # Si hay multiple (viejo y nuevo), tomar el más reciente (últimamente creado)
-                            if store_doc_id is None or doc.create_time > docs_by_path[-1].create_time:
-                                store_doc_id = doc.name
+                try:
+                    docs = client.file_search_stores.documents.list(parent=STORE_NAME)
+                    for doc in docs:
+                        for meta_item in doc.custom_metadata:
+                            if meta_item.key == "path" and meta_item.string_value == kb_path:
+                                # Encontramos un documento con este path
+                                store_doc_id = str(doc.name)
+                                break
+                        if store_doc_id:
                             break
+                    
+                    if store_doc_id and "documents/" in store_doc_id:
+                        # Encontramos el document_id real
+                        break
+                except:
+                    pass
                 
-                if store_doc_id and "documents/" in store_doc_id:
-                    # Encontramos el document_id real
-                    break
-                elif attempt < 4:
-                    logger.info(f"      ⏳ Esperando replicación del documento ({attempt+1}/5)...")
-                    time.sleep(3)
+                if attempt < 4 and not (store_doc_id and "documents/" in store_doc_id):
+                    logger.info(f"      ⏳ Esperando replicación ({attempt+1}/5)...")
+                    time.sleep(2)
             
             if not store_doc_id:
                 # Fallback: usar el operation name si no encontramos el doc
-                store_doc_id = operation.name
-                logger.warning(f"      ⚠️ No se encontró document_id después de reintentos, usando operation_id")
-            elif "upload/operations" in store_doc_id:
-                logger.warning(f"      ⚠️ Solo encontré operation_id, no document_id final")
+                try:
+                    store_doc_id = str(operation.name)
+                except:
+                    store_doc_id = str(response)
+                logger.warning(f"      ⚠️ No se encontró document_id después de reintentos")
             
             logger.info(f"      ✅ Subido exitosamente")
             logger.info(f"         Store ID: {store_doc_id[:60]}...")
