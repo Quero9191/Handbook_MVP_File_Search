@@ -355,38 +355,42 @@ def main():
             if not operation.done:
                 logger.warning(f"      ⚠️ Operación no completó en {max_wait}s (continuando)")
             
-            # Después de que se complete, buscar el documento que se creó
-            # Puede haber delay de propagación, reintentar
+            # Extraer document_id de operation.response (el Document que se creó)
             store_doc_id = None
-            for attempt in range(5):  # Reintentar hasta 5 veces
-                try:
-                    docs = client.file_search_stores.documents.list(parent=STORE_NAME)
-                    for doc in docs:
-                        for meta_item in doc.custom_metadata:
-                            if meta_item.key == "path" and meta_item.string_value == kb_path:
-                                # Encontramos un documento con este path
-                                store_doc_id = str(doc.name)
-                                break
-                        if store_doc_id:
-                            break
-                    
-                    if store_doc_id and "documents/" in store_doc_id:
-                        # Encontramos el document_id real
-                        break
-                except:
-                    pass
-                
-                if attempt < 4 and not (store_doc_id and "documents/" in store_doc_id):
-                    logger.info(f"      ⏳ Esperando replicación ({attempt+1}/5)...")
-                    time.sleep(2)
             
-            if not store_doc_id:
-                # Fallback: usar el operation name si no encontramos el doc
-                try:
-                    store_doc_id = str(operation.name)
-                except:
-                    store_doc_id = str(response)
-                logger.warning(f"      ⚠️ No se encontró document_id después de reintentos")
+            # Primero, intentar extraer del operation.response (la forma correcta)
+            if operation.response and hasattr(operation.response, 'name'):
+                store_doc_id = str(operation.response.name)
+                logger.info(f"      ✅ Document ID extraído de operation.response")
+            
+            # Si no está en operation.response, buscar en el listado (con retry)
+            if not store_doc_id or "documents/" not in store_doc_id:
+                logger.info(f"      ⏳ Buscando documento en el Store...")
+                for attempt in range(5):  # Reintentar hasta 5 veces
+                    try:
+                        docs = client.file_search_stores.documents.list(parent=STORE_NAME)
+                        for doc in docs:
+                            for meta_item in doc.custom_metadata:
+                                if meta_item.key == "path" and meta_item.string_value == kb_path:
+                                    # Encontramos un documento con este path
+                                    store_doc_id = str(doc.name)
+                                    logger.info(f"      ✅ Document ID encontrado en listado")
+                                    break
+                            if store_doc_id:
+                                break
+                        
+                        if store_doc_id and "documents/" in store_doc_id:
+                            break
+                    except:
+                        pass
+                    
+                    if attempt < 4 and not (store_doc_id and "documents/" in store_doc_id):
+                        logger.info(f"      ⏳ Esperando replicación ({attempt+1}/5)...")
+                        time.sleep(2)
+            
+            if not store_doc_id or "documents/" not in store_doc_id:
+                logger.error(f"      ❌ No se pudo obtener document_id. Operation response: {operation.response}")
+                raise Exception("No se pudo extraer document_id del upload")
             
             logger.info(f"      ✅ Subido exitosamente")
             logger.info(f"         Store ID: {store_doc_id[:60]}...")
