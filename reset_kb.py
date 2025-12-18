@@ -36,13 +36,12 @@ def list_documents(store_name: str):
     """Lista todos los documentos en el store usando el SDK de Google"""
     try:
         docs_iterator = client.file_search_stores.documents.list(parent=store_name)
-        docs = list(docs_iterator)
-        return docs
+        return list(docs_iterator)
     except Exception as e:
         logger.error(f"❌ Error listando documentos: {e}")
         return []
 
-def delete_document(doc_name: str):
+def delete_document(doc_name: str) -> bool:
     """Borra un documento usando el SDK con force=true"""
     try:
         client.file_search_stores.documents.delete(
@@ -50,8 +49,10 @@ def delete_document(doc_name: str):
             config={"force": True}
         )
         logger.info(f"   ✓ Borrado: {doc_name.split('/')[-1]}")
+        return True
     except Exception as e:
-        logger.error(f"❌ Error borrando {doc_name}: {e}")
+        logger.warning(f"   ⚠️ Error borrando {doc_name}: {e}")
+        return False
 
 def main(auto_confirm=False):
     logger.info("=" * 60)
@@ -81,16 +82,21 @@ def main(auto_confirm=False):
     # Borrar todos
     logger.info("\n🗑️  Borrando documentos...")
     deleted = 0
+    failed = 0
     for doc in docs:
         doc_name = doc.name  # Document object has .name attribute, not .get()
         if doc_name:
-            delete_document(doc_name)
-            deleted += 1
+            if delete_document(doc_name):
+                deleted += 1
+            else:
+                failed += 1
     
     # Resumen
     logger.info("\n" + "=" * 60)
     logger.info(f"✅ RESET COMPLETADO")
     logger.info(f"   Documentos borrados: {deleted}")
+    if failed > 0:
+        logger.warning(f"   Errores: {failed}")
     logger.info("=" * 60)
     logger.info("\n👉 El Store está vacío. Listo para un nuevo upload.")
 

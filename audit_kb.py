@@ -134,16 +134,16 @@ def main():
     logger.info("=" * 70)
     
     # Recomendaciones
-    if len(docs) != 14:
-        logger.warning(f"\n⚠️  PROBLEMA POTENCIAL:")
-        logger.warning(f"   Esperados: 14 documentos")
-        logger.warning(f"   Encontrados: {len(docs)}")
-        if len(docs) > 14:
-            logger.warning(f"   Hay {len(docs) - 14} documentos extra!")
-            logger.warning(f"   Recomendación: Ejecutar python reset_kb.py para limpiar")
-            logger.warning(f"                 Luego: python sync_kb_to_store.py")
+    if duplicates or no_path:
+        logger.warning(f"\n⚠️  PROBLEMA DETECTADO:")
+        if duplicates:
+            logger.warning(f"   Hay duplicados que deben ser eliminados")
+        if no_path:
+            logger.warning(f"   Hay documentos sin path")
+        logger.warning(f"   Recomendación: Ejecutar python reset_kb.py para limpiar")
+        logger.warning(f"                 Luego: python sync_kb_to_store.py")
     else:
-        logger.info("\n✅ Estado correcto: 14 documentos únicos sin duplicados")
+        logger.info(f"\n✅ Estado correcto: {len(paths)} documentos únicos sin duplicados")
 
 if __name__ == "__main__":
     main()

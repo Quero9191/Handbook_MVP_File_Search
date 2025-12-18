@@ -88,7 +88,7 @@ def sha256_text(s: str) -> str:
 
 
 def parse_frontmatter(md_text: str) -> Tuple[Dict, str]:
-    """Extrae YAML frontmatter entre --- ... ---"""
+    """Extrae YAML frontmatter entre --- ... --- sin excepciones"""
     text = md_text.lstrip()
     if not text.startswith("---"):
         return {}, md_text
@@ -105,27 +105,23 @@ def parse_frontmatter(md_text: str) -> Tuple[Dict, str]:
     if end is None:
         return {}, md_text
 
-    fm_raw = "\n".join(lines[1:end])
-    body = "\n".join(lines[end + 1:])
     try:
+        fm_raw = "\n".join(lines[1:end])
         data = yaml.safe_load(fm_raw) or {}
-        if not isinstance(data, dict):
-            data = {}
-        return data, body
+        return (data if isinstance(data, dict) else {}), md_text
     except Exception as e:
-        logger.warning(f"⚠️ Error parsing frontmatter: {e}")
+        logger.debug(f"⚠️ Frontmatter parse error (ignorado): {e}")
         return {}, md_text
 
 
 def delete_document(store_doc_id: str) -> bool:
     """Borra un documento del File Search Store por su ID (con force=true para chunks)"""
     if not store_doc_id:
-        logger.warning(f"   ⚠️ Sin ID para borrar (ignorando)")
+        logger.debug(f"   ⚠️ Sin ID para borrar (ignorando)")
         return False
     
     try:
         logger.info(f"   🗑️  Borrando documento: {store_doc_id[:60]}...")
-        # Usar force=true para borrar también los chunks
         client.file_search_stores.documents.delete(
             name=store_doc_id,
             config={"force": True}
@@ -135,6 +131,90 @@ def delete_document(store_doc_id: str) -> bool:
     except Exception as e:
         logger.warning(f"   ⚠️ No se pudo borrar: {e}")
         return False
+
+
+def build_metadata(kb_path: str, section: str, hash_val: str, fm: Dict) -> List[Dict]:
+    """Construye lista de metadata para subir a Store"""
+    meta = [
+        {"key": "path", "string_value": kb_path},
+        {"key": "section", "string_value": section},
+        {"key": "hash", "string_value": hash_val},
+    ]
+
+    # Agregar campos del frontmatter
+    for key in ["title", "description", "department", "doc_type", 
+                "owner_team", "maintainer", "visibility", "last_updated"]:
+        value = fm.get(key)
+        if value:
+            meta.append({"key": key, "string_value": str(value)})
+
+    # Agregar keywords si existen
+    keywords = fm.get("keywords")
+    if isinstance(keywords, list) and keywords:
+        meta.append({"key": "keywords_csv", "string_value": ",".join([str(k) for k in keywords])})
+
+    return meta
+
+
+def wait_for_operation(operation, max_wait_seconds: int = 60) -> bool:
+    """Espera a que una operación se complete"""
+    import time
+    waited = 0
+    while not operation.done and waited < max_wait_seconds:
+        time.sleep(2)
+        try:
+            operation = client.operations.get(str(operation.name))
+        except:
+            pass
+        waited += 2
+    
+    if not operation.done:
+        logger.warning(f"   ⚠️ Operación no completó en {max_wait_seconds}s (continuando)")
+    
+    return operation.done
+
+
+def extract_document_id(operation, kb_path: str, store_name: str) -> str | None:
+    """Extrae el document_id de una operación de upload (con retry)"""
+    import time
+    
+    store_doc_id = None
+    
+    # Primero, intentar extraer del operation.response (la forma correcta)
+    if operation.response:
+        if hasattr(operation.response, 'document_name') and operation.response.document_name:
+            store_doc_id = str(operation.response.document_name)
+            logger.info(f"      ✅ Document ID extraído de operation.response.document_name")
+        elif hasattr(operation.response, 'name') and operation.response.name:
+            store_doc_id = str(operation.response.name)
+            logger.info(f"      ✅ Document ID extraído de operation.response.name")
+    
+    # Si no está en operation.response, buscar en el listado (con retry)
+    if not store_doc_id or "documents/" not in store_doc_id:
+        logger.info(f"      ⏳ Buscando documento en el Store...")
+        for attempt in range(5):  # Reintentar hasta 5 veces
+            try:
+                docs = client.file_search_stores.documents.list(parent=store_name)
+                for doc in docs:
+                    for meta_item in doc.custom_metadata:
+                        if meta_item.key == "path" and meta_item.string_value == kb_path:
+                            # Encontramos un documento con este path
+                            store_doc_id = str(doc.name)
+                            logger.info(f"      ✅ Document ID encontrado en listado")
+                            break
+                    if store_doc_id:
+                        break
+                
+                if store_doc_id and "documents/" in store_doc_id:
+                    break
+            except:
+                pass
+            
+            if attempt < 4 and not (store_doc_id and "documents/" in store_doc_id):
+                logger.info(f"      ⏳ Esperando replicación ({attempt+1}/5)...")
+                time.sleep(2)
+    
+    return store_doc_id if (store_doc_id and "documents/" in store_doc_id) else None
 
 
 # =========
@@ -306,25 +386,9 @@ def main():
         content = p.read_text(encoding="utf-8", errors="ignore")
         fm, _ = parse_frontmatter(content)
         
-        # Construir metadata
+        # Construir metadata usando helper
         section = rel.split("/", 1)[0]
-        meta = [
-            {"key": "path", "string_value": kb_path},
-            {"key": "section", "string_value": section},
-            {"key": "hash", "string_value": new_hash},
-        ]
-
-        # Agregar campos del frontmatter
-        for key in ["title", "description", "department", "doc_type", 
-                    "owner_team", "maintainer", "visibility", "last_updated"]:
-            value = fm.get(key)
-            if value:
-                meta.append({"key": key, "string_value": str(value)})
-
-        # Agregar keywords si existen
-        keywords = fm.get("keywords")
-        if isinstance(keywords, list) and keywords:
-            meta.append({"key": "keywords_csv", "string_value": ",".join([str(k) for k in keywords])})
+        meta = build_metadata(kb_path, section, new_hash, fm)
 
         # Subir al Store
         try:
@@ -339,60 +403,13 @@ def main():
             )
             
             # response es una Operation, esperar a que complete
-            import time
             operation = response
-            max_wait = 60  # segundos
-            waited = 0
-            while not operation.done and waited < max_wait:
-                time.sleep(2)
-                try:
-                    operation = client.operations.get(str(operation.name))
-                except:
-                    pass
-                waited += 2
+            wait_for_operation(operation)
             
-            if not operation.done:
-                logger.warning(f"      ⚠️ Operación no completó en {max_wait}s (continuando)")
+            # Extraer document_id (con retry automático si es necesario)
+            store_doc_id = extract_document_id(operation, kb_path, STORE_NAME)
             
-            # Extraer document_id de operation.response (el Document que se creó)
-            store_doc_id = None
-            
-            # Primero, intentar extraer del operation.response (la forma correcta)
-            # operation.response es UploadToFileSearchStoreResponse que tiene document_name
-            if operation.response:
-                if hasattr(operation.response, 'document_name') and operation.response.document_name:
-                    store_doc_id = str(operation.response.document_name)
-                    logger.info(f"      ✅ Document ID extraído de operation.response.document_name")
-                elif hasattr(operation.response, 'name') and operation.response.name:
-                    store_doc_id = str(operation.response.name)
-                    logger.info(f"      ✅ Document ID extraído de operation.response.name")
-            
-            # Si no está en operation.response, buscar en el listado (con retry)
-            if not store_doc_id or "documents/" not in store_doc_id:
-                logger.info(f"      ⏳ Buscando documento en el Store...")
-                for attempt in range(5):  # Reintentar hasta 5 veces
-                    try:
-                        docs = client.file_search_stores.documents.list(parent=STORE_NAME)
-                        for doc in docs:
-                            for meta_item in doc.custom_metadata:
-                                if meta_item.key == "path" and meta_item.string_value == kb_path:
-                                    # Encontramos un documento con este path
-                                    store_doc_id = str(doc.name)
-                                    logger.info(f"      ✅ Document ID encontrado en listado")
-                                    break
-                            if store_doc_id:
-                                break
-                        
-                        if store_doc_id and "documents/" in store_doc_id:
-                            break
-                    except:
-                        pass
-                    
-                    if attempt < 4 and not (store_doc_id and "documents/" in store_doc_id):
-                        logger.info(f"      ⏳ Esperando replicación ({attempt+1}/5)...")
-                        time.sleep(2)
-            
-            if not store_doc_id or "documents/" not in store_doc_id:
+            if not store_doc_id:
                 logger.error(f"      ❌ No se pudo obtener document_id. Operation response: {operation.response}")
                 raise Exception("No se pudo extraer document_id del upload")
             

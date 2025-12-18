@@ -40,7 +40,59 @@ logger.info("=" * 70)
 logger.info(f"\n📌 Configuración:")
 logger.info(f"   API Key: {'✅ Presente' if GEMINI_API_KEY else '❌ Falta'}")
 logger.info(f"   Store Name: {STORE_NAME}")
-logger.info(f"   Base URL: {BASE_URL}")
+# ============================================================
+# Helper Functions
+# ============================================================
+
+def fetch_documents_via_rest(url: str, api_key: str, page_size: int = 50) -> tuple[list, int]:
+    """Fetch first page of documents via REST API"""
+    try:
+        response = requests.get(
+            url,
+            params={"key": api_key, "pageSize": page_size},
+            timeout=30,
+            headers={"User-Agent": "GoogleGenAI/1.0"}
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("documents", []), response.status_code
+    except Exception as e:
+        logger.error(f"❌ REST API Error: {e}")
+        return [], 0
+
+
+def fetch_all_documents_paginated(url: str, api_key: str, max_pages: int = 10) -> list:
+    """Paginate through all documents"""
+    all_docs = []
+    page_token = None
+    page_count = 0
+
+    try:
+        while page_count < max_pages:
+            page_count += 1
+            logger.info(f"   Página {page_count}...")
+            
+            params = {"key": api_key, "pageSize": 50}
+            if page_token:
+                params["pageToken"] = page_token
+            
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            
+            data = response.json()
+            docs = data.get("documents", [])
+            all_docs.extend(docs)
+            
+            logger.info(f"      → {len(docs)} en esta página, {len(all_docs)} total")
+            
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                logger.info(f"      → Fin de páginas")
+                break
+    except Exception as e:
+        logger.error(f"❌ Error paginando: {e}")
+
+    return all_docs
 
 # ============================================================
 # TEST 1: Verificar Store usando SDK de Google
@@ -64,63 +116,29 @@ except Exception as e:
 logger.info("\n\n🧪 TEST 2: Petición HTTPS directa a documents.list")
 logger.info("-" * 70)
 
-# Según la documentación:
-# GET https://generativelanguage.googleapis.com/v1beta/{parent=fileSearchStores/*}/documents
-# Parámetros: pageSize (int), pageToken (string), key (string)
-
 url = f"{BASE_URL}/{STORE_NAME}/documents"
 logger.info(f"   URL: {url}")
-logger.info(f"   Parámetros: key=<API_KEY>, pageSize=50")
 
-try:
-    response = requests.get(
-        url,
-        params={
-            "key": GEMINI_API_KEY,
-            "pageSize": 50,
-        },
-        timeout=30,
-        headers={
-            "User-Agent": "GoogleGenAI/1.0",
-        }
-    )
+docs, status = fetch_documents_via_rest(url, GEMINI_API_KEY)
+
+if status == 200:
+    logger.info(f"✅ Respuesta exitosa (Status 200)")
+    logger.info(f"   Total documentos: {len(docs)}")
     
-    logger.info(f"\n   Status Code: {response.status_code}")
-    logger.info(f"   Headers: {dict(response.headers)}")
-    
-    if response.status_code == 200:
-        data = response.json()
-        docs = data.get("documents", [])
-        logger.info(f"\n✅ Respuesta exitosa:")
-        logger.info(f"   Total documentos en respuesta: {len(docs)}")
-        logger.info(f"   nextPageToken presente: {'nextPageToken' in data}")
-        logger.info(f"   nextPageToken valor: {data.get('nextPageToken', 'N/A')[:20]}...")
-        
-        # Analizar estados
-        if docs:
-            logger.info(f"\n   Detalles de documentos:")
-            states = {}
-            for doc in docs:
-                name = doc.get("name", "N/A")
-                state = doc.get("state", "UNKNOWN")
-                states[state] = states.get(state, 0) + 1
-                logger.info(f"      - {name.split('/')[-1]}: state={state}")
-            
-            logger.info(f"\n   Resumen de estados:")
-            for state, count in sorted(states.items()):
-                logger.info(f"      {state}: {count}")
-        else:
-            logger.warning(f"⚠️  Sin documentos en esta página")
-            
-    elif response.status_code == 400:
-        logger.warning(f"⚠️  Status 400 - Posible Store vacío o error en parámetros")
-        logger.info(f"   Response: {response.text[:200]}")
+    if docs:
+        logger.info(f"\n   Primeros documentos:")
+        states = {}
+        for doc in docs[:5]:
+            name = doc.get("name", "N/A")
+            state = doc.get("state", "UNKNOWN")
+            states[state] = states.get(state, 0) + 1
+            logger.info(f"      - {name.split('/')[-1]}: {state}")
     else:
-        logger.error(f"❌ Error HTTP {response.status_code}")
-        logger.info(f"   Response: {response.text[:200]}")
-        
-except Exception as e:
-    logger.error(f"❌ Excepción en petición: {e}")
+        logger.warning(f"⚠️  Sin documentos en esta página")
+elif status == 400:
+    logger.warning(f"⚠️  Status 400 - Posible Store vacío o error en parámetros")
+else:
+    logger.error(f"❌ Error HTTP {status}")
 
 # ============================================================
 # TEST 3: Paginar completamente
@@ -128,44 +146,7 @@ except Exception as e:
 logger.info("\n\n🧪 TEST 3: Paginar completamente a través de todos los documentos")
 logger.info("-" * 70)
 
-all_docs = []
-page_token = None
-page_count = 0
-
-try:
-    while True:
-        page_count += 1
-        logger.info(f"   Página {page_count}...")
-        
-        params = {
-            "key": GEMINI_API_KEY,
-            "pageSize": 50,
-        }
-        if page_token:
-            params["pageToken"] = page_token
-        
-        response = requests.get(url, params=params, timeout=30)
-        response.raise_for_status()
-        
-        data = response.json()
-        docs = data.get("documents", [])
-        all_docs.extend(docs)
-        
-        logger.info(f"      → Documentos en esta página: {len(docs)}")
-        logger.info(f"      → Total acumulado: {len(all_docs)}")
-        
-        page_token = data.get("nextPageToken")
-        if not page_token:
-            logger.info(f"      → Fin de paginas")
-            break
-            
-        if page_count > 10:
-            logger.warning(f"   ⚠️  Limite de 10 páginas alcanzado (previniendo bucle infinito)")
-            break
-            
-except Exception as e:
-    logger.error(f"❌ Error paginando: {e}")
-
+all_docs = fetch_all_documents_paginated(url, GEMINI_API_KEY)
 logger.info(f"\n✅ TOTAL ACUMULADO: {len(all_docs)} documentos")
 
 # ============================================================
