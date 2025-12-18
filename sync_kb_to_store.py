@@ -399,27 +399,44 @@ def main():
         logger.info(f"\n💾 PASO 8: Guardando sync_state.json en Git...")
         try:
             import subprocess
-            subprocess.run(["git", "config", "user.email", "sync@github.local"], check=True, capture_output=True)
-            subprocess.run(["git", "config", "user.name", "KB Sync Bot"], check=True, capture_output=True)
-            subprocess.run(["git", "add", str(STATE_FILE)], check=True, capture_output=True)
             
-            # Solo commit si hay cambios
-            result = subprocess.run(["git", "diff", "--cached", "--exit-code"], capture_output=True)
-            if result.returncode != 0:  # Hay cambios
-                subprocess.run(
+            # Configurar git user (necesario en GitHub Actions)
+            subprocess.run(["git", "config", "--global", "user.email", "sync@github.local"], check=False)
+            subprocess.run(["git", "config", "--global", "user.name", "KB Sync Bot"], check=False)
+            
+            # Add the sync state file
+            result_add = subprocess.run(["git", "add", str(STATE_FILE)], capture_output=True, text=True)
+            if result_add.returncode != 0:
+                logger.warning(f"   ⚠️ Error en 'git add': {result_add.stderr}")
+            
+            # Verificar si hay cambios para commitear
+            result_diff = subprocess.run(["git", "diff", "--cached", "--quiet"], capture_output=True)
+            if result_diff.returncode != 0:  # Hay cambios (exit code 1 si hay diferencias)
+                # Hacer commit
+                result_commit = subprocess.run(
                     ["git", "commit", "-m", "chore: update sync_state.json after KB sync"],
-                    check=True,
-                    capture_output=True
+                    capture_output=True,
+                    text=True
                 )
-                subprocess.run(["git", "push", "origin", "main"], check=True, capture_output=True)
-                logger.info(f"   ✅ sync_state.json commiteado y pusheado")
+                if result_commit.returncode != 0:
+                    logger.warning(f"   ⚠️ Error en 'git commit': {result_commit.stderr}")
+                else:
+                    logger.info(f"   ✓ Commit realizado")
+                    
+                    # Hacer push
+                    result_push = subprocess.run(
+                        ["git", "push", "origin", "main"],
+                        capture_output=True,
+                        text=True
+                    )
+                    if result_push.returncode != 0:
+                        logger.warning(f"   ⚠️ Error en 'git push': {result_push.stderr}")
+                    else:
+                        logger.info(f"   ✅ sync_state.json pusheado exitosamente")
             else:
-                logger.info(f"   ✅ No hay cambios en sync_state.json")
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"   ⚠️ No se pudo hacer commit/push (puede estar en ambiente local): {e}")
-            # No es error fatal si esto falla en ambiente local
+                logger.info(f"   ✓ No hay cambios en sync_state.json para commitear")
         except Exception as e:
-            logger.warning(f"   ⚠️ Error al hacer git commit: {e}")
+            logger.warning(f"   ⚠️ Error al procesar git operations: {e}")
 
 
 if __name__ == "__main__":
