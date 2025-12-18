@@ -48,6 +48,21 @@ Unified glossary to avoid confusion and ensure everyone speaks the same language
 - **Playbook**: Detailed guide for complex processes (incident response, deployment).
 - **Checklist**: Quick reference list to verify nothing was missed.
 - **Guide**: How-to instructions (code contributions, using tools).
+
+### 🎉 Prueba de Sincronización (Agregado 2025-12-18 22:50)
+Esta sección fue agregada como prueba para verificar que el sistema de sincronización incremental funciona correctamente.
+
+**Qué se cambió:**
+- Se agregó esta nueva sección al glossario
+- El hash del documento cambió
+- El sistema debería detectarlo automáticamente
+- El Store debería actualizar el documento (borrar viejo, subir nuevo)
+- El bot debería poder ver esta nueva sección
+
+**Prueba en el bot:**
+Si preguntás "¿Qué significa prueba de sincronización?", el bot debería encontrar esta entrada y explicarte que se trata de una verificación del sistema de sync.
+
+---
 - **Process**: Step-by-step workflow for regular operations (releases, campaigns).
 - **Overview**: High-level summary of a topic or department.
 - **Policy**: Rules and compliance requirements.
