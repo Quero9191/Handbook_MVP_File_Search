@@ -53,21 +53,38 @@ def list_documents(store_name: str):
     """Lista todos los documentos en el store"""
     docs = []
     page_token = None
-    while True:
-        params = {"key": GEMINI_API_KEY, "pageSize": 50}
+    attempt = 0
+    max_attempts = 5
+    
+    while attempt < max_attempts:
+        params = {"key": GEMINI_API_KEY, "pageSize": 20}  # Reduced from 50
         if page_token:
             params["pageToken"] = page_token
         url = f"{BASE_URL}/{store_name}/documents"
         try:
             r = requests.get(url, params=params, timeout=60)
+            if r.status_code == 400:
+                # Store vacío o problema temporal
+                logger.info("📝 Store vacío o no hay más documentos.")
+                break
             r.raise_for_status()
             data = r.json()
             docs.extend(data.get("documents", []))
             page_token = data.get("nextPageToken")
             if not page_token:
                 break
+            attempt = 0  # Reset counter on success
+        except requests.exceptions.ConnectionError as e:
+            attempt += 1
+            if attempt < max_attempts:
+                logger.warning(f"⚠️  Conexión fallida, reintentando ({attempt}/{max_attempts})...")
+                import time
+                time.sleep(2)
+            else:
+                logger.error(f"❌ Error de conexión después de {max_attempts} intentos: {e}")
+                break
         except Exception as e:
-            logger.error(f"❌ Error listing documents: {e}")
+            logger.error(f"❌ Error listando documentos: {e}")
             break
     return docs
 

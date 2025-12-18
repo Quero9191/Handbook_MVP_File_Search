@@ -116,8 +116,8 @@ def wait_operation(op):
 # =========
 # Main Logic
 # =========
-def load_sync_state() -> Dict[str, str]:
-    """Carga el estado anterior (paths -> hashes)"""
+def load_sync_state() -> Dict[str, dict]:
+    """Carga el estado anterior: {kb_path -> {hash, doc_name}}"""
     if STATE_FILE.exists():
         try:
             return json.loads(STATE_FILE.read_text())
@@ -126,8 +126,8 @@ def load_sync_state() -> Dict[str, str]:
     return {}
 
 
-def save_sync_state(state: Dict[str, str]):
-    """Guarda el estado actual (paths -> hashes)"""
+def save_sync_state(state: Dict[str, dict]):
+    """Guarda el estado actual: {kb_path -> {hash, doc_name}}"""
     try:
         STATE_FILE.write_text(json.dumps(state, indent=2))
         logger.info(f"✅ Saved sync_state.json with {len(state)} entries")
@@ -181,17 +181,26 @@ def main():
         content = p.read_text(encoding="utf-8", errors="ignore")
         fm, _ = parse_frontmatter(content)
         new_hash = sha256_text(content)
-        new_state[kb_path] = new_hash
 
         # Comparar con estado anterior
         if kb_path in old_state:
-            old_hash = old_state[kb_path]
+            old_entry = old_state[kb_path]
+            old_hash = old_entry.get("hash") if isinstance(old_entry, dict) else old_entry
+            old_doc_name = old_entry.get("doc_name") if isinstance(old_entry, dict) else None
+            
             if new_hash == old_hash:
                 logger.info(f"✅ Sin cambios: {kb_path}")
+                new_state[kb_path] = old_entry  # Mantener doc_name
                 skipped += 1
                 continue
             else:
                 logger.info(f"🔄 Actualizando: {kb_path}")
+                # Borrar documento antiguo
+                if old_doc_name:
+                    try:
+                        delete_document(old_doc_name)
+                    except:
+                        pass
                 updated += 1
         else:
             logger.info(f"⬆️  Nuevo: {kb_path}")
@@ -224,6 +233,11 @@ def main():
                 },
             )
             wait_operation(op)
+            # Guardar info con doc_name
+            new_state[kb_path] = {
+                "hash": new_hash,
+                "doc_name": None  # Se actualizaría con el nombre real si fuera necesario
+            }
         except Exception as e:
             logger.error(f"❌ Error uploading {kb_path}: {e}")
 
