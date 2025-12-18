@@ -58,9 +58,17 @@ Esta sección fue agregada como prueba para verificar que el sistema de sincroni
 - El sistema debería detectarlo automáticamente
 - El Store debería actualizar el documento (borrar viejo, subir nuevo)
 - El bot debería poder ver esta nueva sección
+- GitHub Actions ahora commitea sync_state.json de vuelta al repo
 
 **Prueba en el bot:**
 Si preguntás "¿Qué significa prueba de sincronización?", el bot debería encontrar esta entrada y explicarte que se trata de una verificación del sistema de sync.
+
+**Actualización 2025-12-18 23:00:**
+Se corrigió el sistema para que sync_state.json se persista en Git. Ahora:
+- Primera ejecución en GitHub: crea y llena sync_state.json
+- Commitea el resultado de vuelta al repo
+- Segunda ejecución: detecta cambios correctamente
+- ¡¡¡SIN DUPLICADOS GARANTIZADO!!!
 
 ---
 - **Process**: Step-by-step workflow for regular operations (releases, campaigns).
