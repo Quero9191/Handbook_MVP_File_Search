@@ -37,5 +37,18 @@ jobs:
           STORE_DISPLAY_NAME: ${{ secrets.STORE_DISPLAY_NAME }}
         run: python sync_kb_to_store.py
 
+      - name: Commit sync state back to repo
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sync_state.json
+          if git diff --cached --quiet; then
+            echo "📝 No changes to sync_state.json"
+          else
+            git commit -m "chore: update sync_state.json after KB sync"
+            git push origin main
+          fi
+
       - name: Log sync completion
         run: echo "✅ KB sync completed successfully"
