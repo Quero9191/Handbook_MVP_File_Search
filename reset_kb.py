@@ -35,26 +35,14 @@ if not STORE_NAME:
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 def list_documents(store_name: str):
-    """Lista todos los documentos en el store"""
-    docs = []
-    page_token = None
-    while True:
-        params = {"key": GEMINI_API_KEY, "pageSize": 20}
-        if page_token:
-            params["pageToken"] = page_token
-        url = f"{BASE_URL}/{store_name}/documents"
-        try:
-            r = requests.get(url, params=params, timeout=60)
-            r.raise_for_status()
-            data = r.json()
-            docs.extend(data.get("documents", []))
-            page_token = data.get("nextPageToken")
-            if not page_token:
-                break
-        except Exception as e:
-            logger.error(f"❌ Error listing documents: {e}")
-            break
-    return docs
+    """Lista todos los documentos en el store usando el SDK de Google"""
+    try:
+        docs_iterator = client.file_search_stores.documents.list(parent=store_name)
+        docs = list(docs_iterator)
+        return docs
+    except Exception as e:
+        logger.error(f"❌ Error listando documentos: {e}")
+        return []
 
 def delete_document(doc_name: str):
     """Borra un documento"""
@@ -95,7 +83,7 @@ def main():
     logger.info("\n🗑️  Borrando documentos...")
     deleted = 0
     for doc in docs:
-        doc_name = doc.get("name")
+        doc_name = doc.name  # Document object has .name attribute, not .get()
         if doc_name:
             delete_document(doc_name)
             deleted += 1
