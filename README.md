@@ -89,7 +89,7 @@ STORE_DISPLAY_NAME=zigchain-handbook-mvp
 ### 2. Instalar dependencias
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -132,13 +132,13 @@ El workflow ejecutará automáticamente cuando haya cambios en:
 ### `sync_kb_to_store.py`
 Sincroniza documentos con Gemini File Search Store.
 ```bash
-python sync_kb_to_store.py
+python3 sync_kb_to_store.py
 ```
 
 ### `audit_kb.py`
 Auditoría del Store: verifica estado, cuenta documentos, detecta duplicados.
 ```bash
-python audit_kb.py
+python3 audit_kb.py
 ```
 
 ### `reset_kb.py`
@@ -201,7 +201,7 @@ El bot busca en File Search Store y responde con contexto del handbook.
 
 ### 1. Install
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -216,12 +216,12 @@ FILE_SEARCH_STORE_NAME=fileSearchStores/...
 
 ### 3. Sync
 ```bash
-python sync_kb_to_store.py
+python3 sync_kb_to_store.py
 ```
 
 ### 4. Verify
 ```bash
-python audit_kb.py
+python3 audit_kb.py
 ```
 
 Expected:
