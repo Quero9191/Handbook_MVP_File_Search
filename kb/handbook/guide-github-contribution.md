@@ -1,13 +1,13 @@
 ---
+---
 title: "GitHub Contribution Guide"
 description: "How to create branches, submit PRs, request reviews, and merge code following team standards"
-department: "handbook"
+
 doc_type: "guide"
-owner_team: "Engineering"
-maintainer: "Tech Lead"
-visibility: "internal"
-keywords: ["git", "github", "pull-request", "pr", "branch", "review", "merge"]
-last_updated: "2025-12-17"
+owner: "@engineering"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

@@ -1,13 +1,14 @@
 ---
-title: "Título claro"
-description: "1 frase: qué es y para qué sirve"
-department: "incidents | devrel | growth | handbook | organization | shared"
-doc_type: "overview | process | playbook | checklist | guide | faq | policy"
-owner_team: "Nombre del equipo responsable"
-maintainer: "Persona o equipo"
-visibility: "internal"
-keywords: ["sinónimo1", "sinónimo2", "tool-name", "otra-palabra"]
-last_updated: "2025-12-17"
+---
+title: "<Human readable title>"
+description: "<Short explanation of what the document contains>"
+
+doc_type: "<policy | process | playbook | checklist | guide | template | reference>"
+owner: "@username"
+
+last_review: "<YYYY-MM-DD>"
+review_cycle_days: 90
+---
 ---
 
 ## Purpose

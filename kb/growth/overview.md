@@ -1,13 +1,13 @@
 ---
+---
 title: "Growth Overview"
 description: "Growth team focus on customer acquisition, retention, and data-driven decision making"
-department: "growth"
-doc_type: "overview"
-owner_team: "Growth & Marketing"
-maintainer: "Growth Lead"
-visibility: "internal"
-keywords: ["growth", "marketing", "analytics", "campaigns", "acquisition"]
-last_updated: "2025-12-17"
+
+doc_type: "guide"
+owner: "@growth"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

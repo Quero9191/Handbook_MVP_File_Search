@@ -1,13 +1,13 @@
 ---
+---
 title: "Campaign Launch Process"
 description: "Step-by-step process for planning, executing, and measuring marketing campaigns"
-department: "growth"
+
 doc_type: "process"
-owner_team: "Growth & Marketing"
-maintainer: "Growth Lead"
-visibility: "internal"
-keywords: ["campaign", "launch", "marketing", "analytics", "utm-tracking", "measurement"]
-last_updated: "2025-12-17"
+owner: "@growth"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

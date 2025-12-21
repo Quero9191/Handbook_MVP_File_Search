@@ -17,6 +17,25 @@ Central hub for all team handbooks, processes, and how-we-work documentation.
 
 ### How We Work
 
+---
+title: "Handbook Overview"
+description: "Index of team handbooks, processes, and operational guides"
+department: "handbook"
+doc_type: "overview"
+owner: "@communications"
+last_review: "2025-12-21"
+review_cycle_days: 90
+---
+
+## Purpose
+Central hub for all team handbooks, processes, and how-we-work documentation.
+
+## Scope
+
+## Handbook Sections
+
+### How We Work
+
 ### Processes
 
 ### FAQ & Policies

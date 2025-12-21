@@ -1,13 +1,13 @@
 ---
+---
 title: "Document Types & Standards"
 description: "Guide to different document types we use and how to choose the right format"
-department: "handbook"
+
 doc_type: "guide"
-owner_team: "Communications"
-maintainer: "Communications"
-visibility: "internal"
-keywords: ["documentation", "standards", "guidelines", "document-types"]
-last_updated: "2025-12-17"
+owner: "@communications"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

@@ -3,11 +3,11 @@ title: "Company Glossary"
 description: "Common terms, acronyms, and definitions used across the organization"
 department: "shared"
 doc_type: "glossary"
-owner_team: "All Teams"
-maintainer: "Communications"
+owner: "@communications"
 visibility: "internal"
 keywords: ["glossary", "acronyms", "definitions", "terminology"]
-last_updated: "2025-12-18 21:35 - E2E Test: Full Sync Verification"
+last_review: "2025-12-18"
+review_cycle_days: 90
 ---
 
 ## Purpose

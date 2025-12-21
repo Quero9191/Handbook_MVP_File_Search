@@ -1,13 +1,13 @@
 ---
+---
 title: "Incident Triage Checklist"
 description: "Quick reference checklist for Incident Commanders during initial incident response"
-department: "incidents"
+
 doc_type: "checklist"
-owner_team: "Incident Response Team"
-maintainer: "Engineering Lead"
-visibility: "internal"
-keywords: ["incident", "triage", "checklist", "response", "war-room"]
-last_updated: "2025-12-18 21:10 - TEST 2 FILES"
+owner: "@incident-response"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

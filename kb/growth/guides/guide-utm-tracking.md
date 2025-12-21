@@ -1,13 +1,13 @@
 ---
+---
 title: "UTM Tracking Best Practices"
 description: "How to use UTM parameters to track campaign performance and attribute conversions"
-department: "growth"
+
 doc_type: "guide"
-owner_team: "Growth & Marketing"
-maintainer: "Growth Lead"
-visibility: "internal"
-keywords: ["utm", "tracking", "analytics", "campaigns", "attribution"]
-last_updated: "2025-12-17"
+owner: "@growth"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

@@ -141,12 +141,28 @@ def build_metadata(kb_path: str, section: str, hash_val: str, fm: Dict) -> List[
         {"key": "hash", "string_value": hash_val},
     ]
 
-    # Agregar campos del frontmatter
-    for key in ["title", "description", "department", "doc_type", 
-                "owner_team", "maintainer", "visibility", "last_updated"]:
-        value = fm.get(key)
-        if value:
-            meta.append({"key": key, "string_value": str(value)})
+    # Agregar campos del frontmatter (incluye nuevo esquema solicitado)
+    keys_to_take = [
+        "title",
+        "description",
+        "doc_type",
+        "owner",
+        "owner_team",    # compatibilidad
+        "maintainer",
+        "visibility",
+        "last_updated",
+        "last_review",
+        "review_cycle_days",
+    ]
+
+    for key in keys_to_take:
+        if key in fm and fm.get(key) is not None:
+            val = fm.get(key)
+            if isinstance(val, list):
+                val_s = ",".join([str(x) for x in val])
+            else:
+                val_s = str(val)
+            meta.append({"key": key, "string_value": val_s})
 
     # Agregar keywords si existen
     keywords = fm.get("keywords")

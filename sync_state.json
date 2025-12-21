@@ -1,58 +1,58 @@
 {
   "kb/changelog/changelog.md": {
-    "hash": "7e8a8ece238f1b0a057867b990afe38d95c5e6206423d4a01809b903ec0657ba",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbchangelogchangelogmd-yw72krfwjfk2"
+    "hash": "35f0cd65979d1d2633239c40e00b6120e30cf5f747978b3e57688ed689d8a800",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbchangelogchangelogmd-74vdhre18z19"
   },
   "kb/devrel/overview.md": {
-    "hash": "07bdadabf18b64a85575f3dcb50dc5727f2dae9f3621a549eed3b133f0c03826",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbdevreloverviewmd-fswlszwdampv"
+    "hash": "f6ae2b81a89839aca5f538c555876857eed02f0a2cc8c8b76c648497acf3bb9b",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbdevreloverviewmd-9t0l9soqus69"
   },
   "kb/devrel/processes/process-release-notes.md": {
-    "hash": "2839bde0f2b67ae305028d6ebdc9607e6a87ded85796da59cdb224cf88be4b1d",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbdevrelprocessesprocessrel-gplqbyb2vtg9"
+    "hash": "d9895dd5b65310ee384c86a8d4978f2952b2f947d5a644597e07094c3361bfe3",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbdevrelprocessesprocessrel-s06bdxnq157p"
   },
   "kb/growth/guides/guide-utm-tracking.md": {
-    "hash": "0a5e3712e5294fefa8cd1d0d5b2775ce1acb44e8c96af78c156c335628375371",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthguidesguideutmtrack-a8jr9vph1lf5"
+    "hash": "4cbcc964d64de4981fca87d74069b838e9d05988f8096eb7b60259f38a75d487",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthguidesguideutmtrack-lx25ibqoucyw"
   },
   "kb/growth/overview.md": {
-    "hash": "ff69c083529510e441491d9b09426edce4526dba272f219a95138e27d1d36bac",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthoverviewmd-2vvp06mgy8jt"
+    "hash": "f961af532466704197a7c584ce17a6b8a592955d617f6c904c6c723eea4009c5",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthoverviewmd-rduoemxs1dfo"
   },
   "kb/growth/processes/process-campaign-launch.md": {
-    "hash": "c53c8c0cc92598f1fda10a94e5b00fa9c6c022337cfbcb758df1304c8f217ac4",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthprocessesprocesscam-9dd1wq99c7jx"
+    "hash": "c877b4deb2b122d047e5aa05ec2ebcada03f537e52e8111ee1b0a0858cc99708",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbgrowthprocessesprocesscam-7tagu2jcmq68"
   },
   "kb/handbook/guide-github-contribution.md": {
-    "hash": "5e9be5940aed899e28c86f1a9019f2655431b6fd925bdc0228d74787793ba7ac",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookguidegithubcontri-hxaku5azv8g1"
+    "hash": "7424f21d27c20c443f0849f8c14a2c437e6764b192cf641163c04eb00a5e3cc1",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookguidegithubcontri-4x6bn4xlufli"
   },
   "kb/handbook/handbook-document-types.md": {
-    "hash": "3ed21a5d4a425d649cfd0d624fc5499baff56e685099dc04fcb1fe0c43710c00",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookhandbookdocumentt-3uer82lemy2o"
+    "hash": "27fe5c8b0759928fbad9f3d39c15411c3e9f6f74f8a9ca656bf012ec4d6ce31e",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookhandbookdocumentt-9zirac2nnfpd"
   },
   "kb/handbook/overview.md": {
-    "hash": "abd8ae6a62eb213223baabde123d7aad23289a3730b0506661804129b76fca20",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookoverviewmd-xysfaawq2lnh"
+    "hash": "3d5edce23edf9297a510b0dca2b27bdbc911ae738588fd7b582be707998fe927",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbhandbookoverviewmd-7y0hyvxzq7ig"
   },
   "kb/incidents/checklist-incident-triage.md": {
-    "hash": "fde52c2a8219a57129d40b40bfe53e47553ab564b60db9cb87a817f6afe188fe",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbincidentschecklistinciden-xav7res35eow"
+    "hash": "b86eda810e31df284b57b3367c6fe2208f4956a57018cbe164ea7b283d960e42",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbincidentschecklistinciden-851bk7jj9scv"
   },
   "kb/incidents/playbook-incident-management-framework.md": {
-    "hash": "5e5b8dec58b6ddae1ad8c3b970661487897d26d1d18a9b35a517e37170f7e0a9",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbincidentsplaybookincident-cab184yi3c8i"
+    "hash": "7916db7604a3e02a8e5bfa40dfc56f03563c4eb09319da7cfea5cbeeb2e052bc",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbincidentsplaybookincident-z8n5q4nrrbaw"
   },
   "kb/organization/overview.md": {
-    "hash": "c48937bae63fabf8c0312b0da61a3cc9d378509564f85c029e0939c2911ee892",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kborganizationoverviewmd-bboqx89c172x"
+    "hash": "50bf29e0e314fe507f2b095e497f35f01c1d3be7b1d8dffa5c1c4e582f27e993",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kborganizationoverviewmd-oikyfdpmmkq8"
   },
   "kb/shared/glossary.md": {
-    "hash": "818db5f6322006a542b000ba9f7f28386835879829caa4c7ab9e0f4985fcd3de",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbsharedglossarymd-p5fu21ex4dwc"
+    "hash": "f756d538dcba315db8f41fe035eb3f92bb11d0ff77172396907c5ded08fbc92f",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbsharedglossarymd-uugpasy9oood"
   },
   "kb/shared/tools-and-links.md": {
-    "hash": "241905d04ded1bca3399980a5ed25df2691033f5eb07d0f4491c8c55ef5fb993",
-    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbsharedtoolsandlinksmd-iayyp4gd41lx"
+    "hash": "0042848d637c931e2f8fd480cbaf482421f792f36b9483fa4cecbddbc8fc0c93",
+    "store_doc_id": "fileSearchStores/zigchainhandbookmvp-eyex7dtbkzyo/documents/kbsharedtoolsandlinksmd-it7cptpbo234"
   }
 }

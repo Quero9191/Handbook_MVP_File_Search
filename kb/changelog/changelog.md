@@ -1,13 +1,13 @@
 ---
+---
 title: "Changelog"
 description: "Complete history of all knowledge base updates and changes"
-department: "shared"
-doc_type: "changelog"
-owner_team: "Communications"
-maintainer: "Communications"
-visibility: "internal"
-keywords: ["changelog", "updates", "history", "versions"]
-last_updated: "2025-12-18 20:24 - FRESH SYNC TEST AFTER RESET"
+
+doc_type: "reference"
+owner: "@communications"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

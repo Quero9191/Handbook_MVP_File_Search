@@ -1,13 +1,13 @@
 ---
+---
 title: "Incident Management Framework"
 description: "Complete playbook for identifying, declaring, and resolving production incidents with clear escalation paths"
-department: "incidents"
+
 doc_type: "playbook"
-owner_team: "Incident Response Team"
-maintainer: "Engineering Lead"
-visibility: "internal"
-keywords: ["incident", "escalation", "war-room", "postmortem", "severity-levels", "response"]
-last_updated: "2025-12-17"
+owner: "@incident-response"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

@@ -1,13 +1,13 @@
 ---
+---
 title: "Release Notes Process"
 description: "How to document, write, and publish release notes for each sprint"
-department: "devrel"
+
 doc_type: "process"
-owner_team: "Product & DevRel"
-maintainer: "DevRel Manager"
-visibility: "internal"
-keywords: ["release-notes", "sprint", "changelog", "versioning", "communication"]
-last_updated: "2025-12-17"
+owner: "@product"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

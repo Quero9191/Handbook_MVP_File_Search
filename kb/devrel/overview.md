@@ -1,13 +1,13 @@
 ---
+---
 title: "DevRel Overview"
 description: "Developer Relations team mission, responsibilities, and how we support the community"
-department: "devrel"
-doc_type: "overview"
-owner_team: "DevRel"
-maintainer: "DevRel Manager"
-visibility: "internal"
-keywords: ["devrel", "documentation", "community", "partnerships"]
-last_updated: "2025-12-17"
+
+doc_type: "guide"
+owner: "@devrel"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose

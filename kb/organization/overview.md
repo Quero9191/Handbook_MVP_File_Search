@@ -1,13 +1,13 @@
 ---
+---
 title: "Organization Overview"
 description: "High-level overview of company structure, teams, and key contacts"
-department: "organization"
-doc_type: "overview"
-owner_team: "HR & Leadership"
-maintainer: "People Team"
-visibility: "internal"
-keywords: ["organization", "teams", "structure", "contacts"]
-last_updated: "2025-12-18 21:10 - TEST 2 FILES"
+
+doc_type: "guide"
+owner: "@people"
+
+last_review: "2025-12-21"
+review_cycle_days: 90
 ---
 
 ## Purpose
