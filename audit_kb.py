@@ -16,6 +16,7 @@ from collections import defaultdict
 import requests
 from dotenv import load_dotenv
 from google import genai
+import json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,6 +80,34 @@ def main():
     logger.info("\n" + "=" * 70)
     logger.info("📊 ANÁLISIS DETALLADO:")
     logger.info("=" * 70)
+    # Cargar sync_state.json (si existe) para detectar eliminados
+    sync_state_path = ROOT / "sync_state.json"
+    sync_state = {}
+    expected_store_ids = set()
+    storeid_to_path = {}
+    if sync_state_path.exists():
+        try:
+            with open(sync_state_path, "r", encoding="utf-8") as fh:
+                sync_state = json.load(fh)
+            for p, meta in sync_state.items():
+                sid = meta.get("store_doc_id")
+                if sid:
+                    expected_store_ids.add(sid)
+                    storeid_to_path[sid] = p
+        except Exception as e:
+            logger.warning(f"⚠️  No se pudo leer sync_state.json: {e}")
+    else:
+        logger.info("⚠️  sync_state.json no encontrado en el repo; no se podrá calcular 'Eliminados'.")
+
+    # Conjuntos de documentos actuales
+    actual_store_ids = set()
+    for d in docs:
+        try:
+            actual_store_ids.add(d.name)
+        except Exception:
+            pass
+
+    missing_store_ids = expected_store_ids - actual_store_ids
     
     # Por path
     paths = defaultdict(list)
@@ -130,8 +159,15 @@ def main():
     logger.info(f"   Total: {len(docs)} documentos")
     logger.info(f"   Únicos (por path): {len(paths)} paths")
     logger.info(f"   Sin path: {len(no_path)}")
+    logger.info(f"   Eliminados: {len(missing_store_ids)}")
     logger.info(f"   Duplicados: {len(duplicates)} paths con múltiples copias")
     logger.info("=" * 70)
+
+    if missing_store_ids:
+        logger.warning("\n⚠️  ENCONTRADOS STORE IDS REFERENCIADOS EN sync_state.json PERO AUSENTES EN EL STORE:")
+        for sid in sorted(missing_store_ids):
+            path = storeid_to_path.get(sid, "(path desconocido)")
+            logger.warning(f"   - {path} -> {sid}")
     
     # Recomendaciones
     if duplicates or no_path:

@@ -7,11 +7,11 @@
 Automatically syncs your Markdown knowledge base (`kb/` folder) to a Google Gemini File Search Store with **zero duplicates**, even with incremental updates. Uses GitHub Actions for automated synchronization.
 
 **Key Features:**
-- ✅ **Zero Duplicates** - SHA256 hash-based deduplication
-- ✅ **Incremental Sync** - Only changed files processed
-- ✅ **Automated** - GitHub Actions triggers on kb/ changes
-- ✅ **Recoverable** - sync_state.json enables rollback
-- ✅ **Integrated** - Works with Slack bot for queries
+- ✅ **Zero Duplicates** - SHA256 hash-based deduplication and store-ID tracking
+- ✅ **Incremental Sync** - Only changed files are processed (no full reupload required)
+- ✅ **Automated** - GitHub Actions triggers on `kb/` changes
+- ✅ **Recoverable** - `sync_state.json` enables safe rollback and idempotent syncs
+- ✅ **Integrated** - Works with the Slack bot which queries the File Search Store
 
 ## 📚 Estructura
 
@@ -121,7 +121,11 @@ El workflow ejecutará automáticamente cuando haya cambios en:
    visibility: "internal"
    keywords: ["keyword1", "keyword2"]
    last_updated: "YYYY-MM-DD"
-   ---
+    # OPTIONAL: additional metadata supported by the sync script
+    # owner: "@person_or_team"
+    # last_review: "YYYY-MM-DD"
+    # review_cycle_days: 90
+    ---
    ```
 3. Escribe contenido con Markdown
 4. Commit + push a `main`
@@ -130,19 +134,19 @@ El workflow ejecutará automáticamente cuando haya cambios en:
 ## 🛠️ Scripts disponibles
 
 ### `sync_kb_to_store.py`
-Sincroniza documentos con Gemini File Search Store.
+Sincroniza documentos con Gemini File Search Store. El script es incremental: sólo reemplaza documentos cuyo contenido (incluyendo frontmatter) cambió.
 ```bash
 python3 sync_kb_to_store.py
 ```
 
 ### `audit_kb.py`
-Auditoría del Store: verifica estado, cuenta documentos, detecta duplicados.
+Auditoría del Store: verifica estado, lista documentos y ayuda a detectar inconsistencias.
 ```bash
 python3 audit_kb.py
 ```
 
 ### `reset_kb.py`
-Elimina TODOS los documentos del Store (uso con cuidado).
+Elimina TODOS los documentos del Store (uso con cuidado). Útil para empezar desde cero o cuando quieras crear un Store limpio.
 ```bash
 python reset_kb.py
 ```
@@ -160,10 +164,11 @@ python audit_kb.py
 Espera resultado como:
 ```
 ✅ TOTAL DE DOCUMENTOS: 14
-   ✓ Sin cambios: 13
-   🔄 Actualizados: 0
-   ⬆️  Nuevos: 1
-   📚 Total en Store: 14
+✓ Sin cambios: 13
+🔄 Actualizados: 0
+🗑️ Eliminados: 0
+⬆️ Nuevos: 1
+📚 Total en Store: 14
 ```
 
 ## 🤖 Integración con Slack Bot
@@ -190,13 +195,19 @@ El bot busca en File Search Store y responde con contexto del handbook.
 ## ❓ Troubleshooting
 
 **Q: GitHub Actions falló**
-→ Ver logs en Actions tab, comprobar que secrets estén configurados
+→ Ver logs en Actions tab; comprobar que `GEMINI_API_KEY` y `FILE_SEARCH_STORE_NAME` estén configurados
 
 **Q: Audit muestra más de 14 documentos**
-→ Hay duplicados, ejecutar `python reset_kb.py` y luego `python sync_kb_to_store.py`
+→ Puede haber inconsistencias históricas. Opciones:
+  - Ejecuta `python audit_kb.py` para inspeccionar listas y `store_doc_id`.
+  - Si confirmas que quieres empezar desde cero: respalda `sync_state.json`, ejecuta `python reset_kb.py` y luego `python sync_kb_to_store.py`.
+  - Alternativa segura: crea un nuevo Store y vuelve a sincronizar allí, luego cambia `FILE_SEARCH_STORE_NAME`.
+
+**Q: Cambios en frontmatter (metadatos) → ¿tengo que re-subir todo?**
+→ No. El script detecta cambios por SHA256 y sólo reemplaza los archivos modificados. No es necesario vaciar el Store por cambios de metadatos.
 
 **Q: Cambios no se reflejan en el bot**
-→ Esperar 2 min a que GitHub Actions termine, luego probar consulta
+→ Espera a que GitHub Actions termine; luego prueba consulta al bot. Si el bot usa cache/TTL, espera el TTL o reinícialo.
 ## 🚀 Quick Start
 
 ### 1. Install
@@ -226,9 +237,12 @@ python3 audit_kb.py
 
 Expected:
 ```
-✅ TOTAL: 14 documentos
-✅ Sin duplicados
-✅ Todos tienen path
+✅ TOTAL DE DOCUMENTOS: 14
+✓ Sin cambios: 13
+🔄 Actualizados: 0
+🗑️ Eliminados: 0
+⬆️ Nuevos: 1
+📚 Total en Store: 14
 ```
 
 ## 📝 Files Overview
@@ -288,7 +302,7 @@ python reset_kb.py
 
 ## 📊 Current State
 
-- **14 Documents** across 8 sections
+- **14 documentos** en 8 secciones
 - **0 Duplicates** (verified)
 - **Sync Time** ~30 seconds
 - **State File** ~2KB (sync_state.json in Git)
