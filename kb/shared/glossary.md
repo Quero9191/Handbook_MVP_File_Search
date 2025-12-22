@@ -3,7 +3,7 @@ title: "Company Glossary"
 description: "Common terms, acronyms, and definitions used across the organization"
 department: "shared"
 doc_type: "glossary"
-owner: "@Hugo"
+owner: "@David"
 visibility: "internal"
 keywords: ["glossary", "acronyms", "definitions", "terminology"]
 last_review: "2025-12-18"
