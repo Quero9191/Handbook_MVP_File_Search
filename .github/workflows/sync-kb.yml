@@ -51,3 +51,16 @@ jobs:
 
       - name: Log sync completion
         run: echo "✅ KB sync completed successfully"
+
+  restart-bot:
+    needs: sync
+    runs-on: [self-hosted, macos]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Wait before restarting bot
+        run: sleep 5
+
+      - name: Restart bot
+        run: bash /Users/quero/Downloads/Scripts_VSCode/reload_bot.sh

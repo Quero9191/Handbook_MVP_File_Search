@@ -9,6 +9,9 @@ dist/
 build/
 .pytest_cache/
 
+# Documentation (local setup notes, not needed in repo)
+SSH_DEPLOYMENT_SETUP.md
+
 # NOTE: sync_state.json IS tracked in Git intentionally
 # It stores the mapping between KB files and Store document IDs
 # This is essential for avoiding duplicates in GitHub Actions
