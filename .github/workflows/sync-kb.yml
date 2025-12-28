@@ -63,4 +63,4 @@ jobs:
         run: sleep 5
 
       - name: Restart bot
-        run: bash /Users/quero/Downloads/Scripts_VSCode/reload_bot.sh
+        run: bash /Users/quero/Downloads/Scripts_VSCode/slack-bot-files-search-python-hugo/scripts/reload_bot.sh
