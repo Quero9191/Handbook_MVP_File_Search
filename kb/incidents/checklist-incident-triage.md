@@ -4,7 +4,7 @@ title: "Incident Triage Checklist"
 description: "Quick reference checklist for Incident Commanders during initial incident response"
 
 doc_type: "checklist"
-owner: "@incident-response"
+owner: "@Quero"
 
 last_review: "2025-12-21"
 review_cycle_days: 90
